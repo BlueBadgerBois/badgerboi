@@ -2,5 +2,14 @@
 build:
 	docker-compose build
 
-run:
+reloadweb:
+	docker-compose up --no-deps --build web
+
+upweb:
+	docker-compose up --no-deps web
+
+upcassandra:
+	docker-compose up cassandra
+
+up:
 	docker-compose up
