@@ -1,9 +1,6 @@
-IMAGE_NAME=`cat IMAGE_NAME`
-CONTAINER_NAME=`cat CONTAINER_NAME`
+# do this before running
+build:
+	docker-compose build
 
-compile:
-	docker build -t $(IMAGE_NAME) .
-
-
-run: compile
-	docker run -it --rm --name $(CONTAINER_NAME) $(IMAGE_NAME)
+run:
+	docker-compose up

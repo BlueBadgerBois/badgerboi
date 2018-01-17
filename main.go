@@ -1,23 +1,31 @@
 package main
 
 import (
-  "fmt"
-  "io/ioutil"
-  "net/http"
-  "os"
+	"log"
+	"os"
+	"time"
+
+	"github.com/gocql/gocql"
 )
 
 func main() {
-  resp, err := http.Get("https://google.com")
-  check(err)
-  body, err := ioutil.ReadAll(resp.Body)
-  check(err)
-  fmt.Println(len(body))
-}
+	time.Sleep(20 * time.Second) // try sleep until cassandra is up
+	cluster := gocql.NewCluster("cassandra")
+	cluster.Keyspace = "example"
+	cluster.Consistency = gocql.Quorum
 
-func check(err error) {
-  if err != nil {
-    fmt.Println(err)
-    os.Exit(1)
-  }
+	session, sess_err := cluster.CreateSession()
+
+	if sess_err != nil {
+		log.Fatal(sess_err)
+		os.Exit(1)
+	}
+
+	defer session.Close()
+
+	if err := session.Query(`INSERT INTO tweet (timeline, id, text) VALUES (?, ?, ?)`,
+	"me", gocql.TimeUUID(), "hello world").Exec(); err != nil {
+		log.Fatal(err)
+		os.Exit(1)
+	}
 }

@@ -1,0 +1,11 @@
+version: '3'
+services:
+  web:
+    # need to start using healthcheck to ensure cassandra is up. sleep could be adequate for now tho
+    depends_on:
+      - cassandra
+    build: .
+    volumes:
+      - .:/go/src/app
+  cassandra:
+    image: "cassandra"
