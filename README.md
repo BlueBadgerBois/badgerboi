@@ -6,7 +6,7 @@
   make build
 ```
 
-#### Start cassandra container
+#### 1. Start cassandra container
 In a separate shell:
 ```
   make upcassandra
@@ -17,12 +17,12 @@ If this is your first time running, you'll need to bootstrap the database:
 ```
   ./scripts/seed.sh
 ```
-#### Start transaction server container
+#### 2. Start transaction server container
 In a separate shell:
 ```
   make uptx
 ```
-#### Start web server container
+#### 3. Start web server container
 In a separate shell:
 ```
   make upweb
