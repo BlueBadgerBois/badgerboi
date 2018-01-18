@@ -1,6 +1,6 @@
 ## Running
 
-###Recommended
+### Recommended
 #### Build all services
 ```
   make build
