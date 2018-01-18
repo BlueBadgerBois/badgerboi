@@ -41,4 +41,4 @@ or
 ```
 
 ### TODO
-Create seed script for cassandra
+Improve seed script for cassandra
