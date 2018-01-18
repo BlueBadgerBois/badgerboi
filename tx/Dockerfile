@@ -13,4 +13,3 @@ RUN go-wrapper install    # "go install -v ./..."
 # CMD is the command that is run at RUN-TIME when a new container is started from the image
 CMD go get github.com/pilu/fresh && \ 
   fresh
-# CMD ["go-wrapper", "run"] # ["app"]

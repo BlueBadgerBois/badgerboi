@@ -1,6 +1,7 @@
 FROM golang:1.8
 
 WORKDIR /go/src/app
+
 # copy the code into the container so it is available at build-time for go-wrapper.
 # the docker-compose file mounts the code directory at the same path as well for code-reloading
 COPY . .
@@ -12,4 +13,3 @@ RUN go-wrapper install    # "go install -v ./..."
 # CMD is the command that is run at RUN-TIME when a new container is started from the image
 CMD go get github.com/pilu/fresh && \
   fresh
-# CMD ["go-wrapper", "run"] # ["app"]
