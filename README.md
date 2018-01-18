@@ -1,12 +1,12 @@
 ## Running
 
 ### Recommended
-#### Build images for all services that need building
+#### 1. Build images for all services that need building
 ```
   make build
 ```
 
-#### 1. Start cassandra container
+#### 2. Start cassandra container
 In a separate shell:
 ```
   make upcassandra
@@ -17,12 +17,12 @@ If this is your first time running, you'll need to bootstrap the database:
 ```
   ./scripts/seed.sh
 ```
-#### 2. Start transaction server container
+#### 3. Start transaction server container
 In a separate shell:
 ```
   make uptx
 ```
-#### 3. Start web server container
+#### 4. Start web server container
 In a separate shell:
 ```
   make upweb
