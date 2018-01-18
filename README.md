@@ -1,12 +1,12 @@
 ## Running
 
 ### Recommended
-#### Build all services
+#### Build images for all services that need building
 ```
   make build
 ```
 
-#### Start cassandra
+#### Start cassandra container
 In a separate shell:
 ```
   make upcassandra
@@ -17,18 +17,18 @@ If this is your first time running, you'll need to bootstrap the database:
 ```
   ./scripts/seed.sh
 ```
-#### Start transaction server
+#### Start transaction server container
 In a separate shell:
 ```
   make uptx
 ```
-#### Start web server
+#### Start web server container
 In a separate shell:
 ```
   make upweb
 ```
 
-#### Reloading a container after making code changes
+#### Reloading a container after making code changes (e.g. after changing the web server)
 This will re-build the corresponding image and start a new container with the image, attached to the docker network.
 
 In the shell that the server was running in:
