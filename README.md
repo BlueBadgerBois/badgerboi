@@ -35,3 +35,5 @@ or
   make reloadweb
 ```
 
+### TODO
+Create seed script for cassandra
