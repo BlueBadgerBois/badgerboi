@@ -2,21 +2,21 @@ version: '3'
 services:
   tx:
     # need to start using healthcheck to ensure cassandra is up. sleep could be adequate for now tho
-    container_name: transaction_server
+    container_name: tx_container
     depends_on:
       - cassandra
-    build: ./transaction_server
+    build: ./tx
     volumes:
-      - ./transaction_server:/go/src/app
+      - ./tx:/go/src/app
   web:
-    container_name: web_server
+    container_name: web_container
     depends_on:
       - tx
-    build: ./web_server
+    build: ./web
     volumes:
-      - ./web_server:/go/src/app
+      - ./web:/go/src/app
   cassandra:
-    container_name: cassandra_server
+    container_name: cassandra_container
     image: "cassandra"
     volumes:
       - ./db:/db

@@ -1,1 +1,1 @@
-docker exec -it cassandra_server cqlsh --file /db/seed.cql
+docker exec -it cassandra_container cqlsh --file /db/seed.cql
