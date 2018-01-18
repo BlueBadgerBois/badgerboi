@@ -8,6 +8,7 @@ services:
     build: ./tx
     volumes:
       - ./tx:/go/src/app
+      - ./db/:/db
   web:
     container_name: web_container
     depends_on:

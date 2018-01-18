@@ -1,0 +1,11 @@
+#!/bin/bash
+HOST=cassandra
+KEYSPACE=badgerboi
+PORT=9042
+
+MIGRATION_FILE_NAME=$1
+
+# generate journey migration from inside tx_container
+docker exec -it tx_container journey \
+  --url "cassandra://${HOST}:${PORT}/${KEYSPACE}?protocol=4&consistency=all&disable_init_host_lookup" \
+  --path /db/migrations migrate create $MIGRATION_FILE_NAME
