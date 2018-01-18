@@ -1,5 +1,5 @@
+# Badger Boi
 ## Running
-
 ### Recommended
 #### 1. Build images for all services that need building
 ```
