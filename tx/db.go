@@ -4,7 +4,11 @@ import (
 	"log"
 	"os"
 	"github.com/gocql/gocql"
+	"time"
 )
+
+const MAX_RETRIES = 12
+const RETRY_DELAY_SECS = 2
 
 type DB struct {
 	host string
@@ -12,7 +16,7 @@ type DB struct {
 	session *gocql.Session
 }
 
-func (db *DB) connect(host string, keyspace string) {
+func (db *DB) connectWithRetries(host string, keyspace string) {
 	db.host = host
 	db.cluster = gocql.NewCluster(db.host)
 	db.cluster.Keyspace = keyspace
@@ -20,12 +24,22 @@ func (db *DB) connect(host string, keyspace string) {
 
 	session, sess_err := db.cluster.CreateSession()
 
-	if sess_err != nil {
-		log.Fatal(sess_err)
-		os.Exit(1)
+	retries := 0
+
+	// Wait until cassandra is up
+	for sess_err != nil {
+		if retries > MAX_RETRIES {
+			log.Fatal(sess_err)
+			os.Exit(1)
+		}
+
+		time.Sleep(RETRY_DELAY_SECS * time.Second)
+		log.Println("Error connecting to cassandra. Retrying...")
+		session, sess_err = db.cluster.CreateSession()
+		retries++
 	}
 
-	log.Println("looks like we connected to the db")
+	log.Println("Connected to cassandra successfully.")
 
 	db.session = session
 }
