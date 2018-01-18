@@ -1,6 +1,8 @@
 FROM golang:1.8
 
 WORKDIR /go/src/app
+# copy the code into the container so it is available at build-time for go-wrapper.
+# the docker-compose file mounts the code directory at the same path as well for code-reloading
 COPY . .
 
 RUN go-wrapper download   # "go get -d -v ./..."
