@@ -11,7 +11,12 @@ In a separate shell:
 ```
   make upcassandra
 ```
-Then wait until cassandra outputs that it is listening.
+Then wait until cassandra outputs that it is listening (something like `Starting listening for CQL clients on /0.0.0.0:9042`).
+
+If this is your first time running, you'll need to bootstrap the database:
+```
+  ./scripts/seed.sh
+```
 #### Start transaction server
 In a separate shell:
 ```
