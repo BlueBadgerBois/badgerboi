@@ -11,6 +11,7 @@ RUN go-wrapper install    # "go install -v ./..."
 RUN go get github.com/db-journey/journey # Grab journey for migrations: This might take awhile
 
 # Use fresh to run the app and auto-recompile on change
-# CMD is the command that is run at RUN-TIME when a new container is started from the image
+# CMD is the command that is run at RUN-TIME when a new container is started from the image.
+# This also prevents the container from exiting after the go program exits, since fresh is still running
 CMD  go get github.com/pilu/fresh && \
   fresh
