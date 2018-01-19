@@ -1,2 +1,2 @@
-web/tmp
-tx/tmp
+web/tmp/*
+tx/tmp/*

@@ -44,19 +44,16 @@ func (db *DB) connectWithRetries(host string, keyspace string) {
 	db.session = session
 }
 
-func (db *DB) insert(table string) {
-	if err := db.session.Query(`INSERT INTO users (timeline, id, text) VALUES (?, ?, ?)`,
-	"me", gocql.TimeUUID(), "DERP").Exec(); err != nil {
-		log.Fatal(err)
-		os.Exit(1)
-	}
+func (db *DB) initSchema() {
+	log.Println("Initializing schema")
+
+	// Add all schemas here
+	db.createTable(userSchema)
 }
 
-func (db *DB) query() {
-	if err := db.session.Query(`INSERT INTO users (timeline, id, text) VALUES (?, ?, ?)`,
-	"me", gocql.TimeUUID(), "DERP").Exec(); err != nil {
-		log.Fatal(err)
-		os.Exit(1)
+func (db *DB) createTable(table string) {
+	if err := db.session.Query(table).RetryPolicy(nil).Exec(); err != nil {
+		log.Printf("error creating table table=%q err=%v\n", table, err)
 	}
 }
 
