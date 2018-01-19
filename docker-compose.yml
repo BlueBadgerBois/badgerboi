@@ -13,6 +13,7 @@ services:
     container_name: web_container
     ports: 
       - "8080:8080"
+      - "8081:8081"
     depends_on:
       - tx
     build: ./web
