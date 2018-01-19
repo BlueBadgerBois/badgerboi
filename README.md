@@ -11,12 +11,16 @@ In a separate shell:
 ```
   make upcassandra
 ```
-Then wait until cassandra outputs that it is listening (something like `Starting listening for CQL clients on /0.0.0.0:9042`).
 
-If this is your first time running, you'll need to bootstrap the database:
+
+Optional: If this is your first time running, you'll need to bootstrap the database:
+Wait until cassandra outputs that it is listening (something like `Starting listening for CQL clients on /0.0.0.0:9042`),
+then do:
 ```
   ./scripts/seed.sh
 ```
+This creates the keyspace and creates the users table.
+
 #### 3. Start transaction server container
 In a separate shell:
 ```
@@ -28,17 +32,20 @@ In a separate shell:
   make upweb
 ```
 
-#### Reloading a container after making code changes (e.g. after changing the web server)
-This will re-build the corresponding image and start a new container with the image, attached to the docker network.
-
-In the shell that the server was running in:
+#### 5. Run pending migrations
 ```
-  make reloadtx
-```
-or
-```
-  make reloadweb
+  ./scripts/migrate up
 ```
 
-### TODO
-Improve seed script for cassandra
+## Creating a migration
+```
+  ./scripts/migrate create my_fancy_migration
+```
+This will create two files in db/migrations: an "up" file and a "down" file.
+You are responsible for adding the appropriate cql commands in these files.
+
+The "up" file should contain the change you are making to the schema e.g. adding a new table.
+The "down" file should contain the commands for REVERSING that change e.g. dropping the added table.
+
+## Code reloading
+The go code will be automatically recompiled inside the running containers using fresh.
