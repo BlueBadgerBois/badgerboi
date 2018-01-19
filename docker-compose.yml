@@ -10,6 +10,8 @@ services:
       - ./tx:/go/src/app
   web:
     container_name: web_container
+    ports: 
+      - "8080:8080"
     depends_on:
       - tx
     build: ./web
