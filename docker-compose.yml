@@ -3,15 +3,21 @@ services:
   tx:
     # need to start using healthcheck to ensure cassandra is up. sleep could be adequate for now tho
     container_name: tx_container
+    ports:
+      - "8082:8082"
     depends_on:
       - cassandra
     build: ./tx
     volumes:
       - ./tx:/go/src/app
       - ./db/:/db
+    networks:
+      default:
+        aliases:
+          - tx
   web:
     container_name: web_container
-    ports: 
+    ports:
       - "8080:8080"
       - "8081:8081"
     depends_on:
@@ -19,6 +25,10 @@ services:
     build: ./web
     volumes:
       - ./web:/go/src/app
+    networks:
+      default:
+        aliases:
+          - web
   cassandra:
     container_name: cassandra_container
     image: "cassandra"
