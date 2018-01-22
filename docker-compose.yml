@@ -6,7 +6,7 @@ services:
     ports:
       - "8082:8082"
     depends_on:
-      - cassandra
+      - db
     build: ./tx
     volumes:
       - ./tx:/go/src/app
@@ -29,8 +29,9 @@ services:
       default:
         aliases:
           - web
-  cassandra:
-    container_name: cassandra_container
-    image: "cassandra"
-    volumes:
-      - ./db:/db
+  db:
+    image: postgres
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: badgerboi
+      POSTGRES_USER: badgerboi
