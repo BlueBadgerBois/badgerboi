@@ -30,8 +30,10 @@ services:
         aliases:
           - web
   db:
+    container_name: db_container
     image: postgres
     restart: always
     environment:
       POSTGRES_PASSWORD: badgerboi
       POSTGRES_USER: badgerboi
+      POSTGRES_DB: badgerboi

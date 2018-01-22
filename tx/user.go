@@ -1,8 +1,8 @@
 package main
 
-// import (
-// 	"log"
-// )
+import (
+	"github.com/jinzhu/gorm"
+)
 
 // const USER_TABLE_NAME = "badgerboi.user"
 
@@ -14,10 +14,10 @@ package main
 // 	PRIMARY KEY(username)
 // )`
 
-// type User struct {
-// 	Id gocql.UUID // struct attribute names need to be **camelcased** versions of the column names
-// 	Username string
-// }
+type User struct {
+	gorm.Model
+	Username string
+}
 
 // func (db *DB) createUser(username string) {
 // 	var u = &User{

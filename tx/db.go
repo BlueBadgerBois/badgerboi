@@ -16,17 +16,28 @@ type DB struct {
 	conn *gorm.DB
 }
 
+func (db *DB) init() {
+	db.connectWithRetries()
+	db.autoMigrate()
+}
+
 func (db *DB) connectWithRetries() {
 	conn, err := gorm.Open("postgres", "host=db user=badgerboi dbname=badgerboi sslmode=disable password=badgerboi")
 	db.conn = conn
 	if err != nil {
 		log.Println(err)
 	}
+
+	db.autoMigrate()
 }
 
 // defer this
 func (db *DB) cleanUp() {
 	db.conn.Close()
+}
+
+func (db *DB) autoMigrate() {
+	 db.conn.AutoMigrate(&User{})
 }
 
 // func (db *DB) connectWithRetries(host string, keyspace string) {

@@ -10,12 +10,11 @@ const db_keyspace = "badgerboi"
 
 func main() {
 	// connect to db
-	// db := DB{};
-	// db.connectWithRetries(db_host, db_keyspace)
-	// defer db.cleanUp()
+	db := DB{}
+	db.init()
+	defer db.cleanUp()
 
-	// db.initSchema()
+	// db.conn.Create(&User{Username: "chris"})
 
-	// log.Println("running tx server")
-	// db.createUser("user2")
+	log.Println("Running tx server")
 }
