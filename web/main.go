@@ -4,9 +4,17 @@ import (
   "html/template"
   "github.com/kabukky/httpscerts" //might download later for faster import OR implement own version of cert generation
   "net/http"
+  "net"
+  "bufio"
+  //"encoding/json"
   "log"
   "fmt"
 )
+
+type txJson struct {
+  Action  string
+  Payload string
+}
 
 func handler(w http.ResponseWriter, r *http.Request){
   temp, err := template.ParseFiles("templates/login.html")
@@ -24,19 +32,38 @@ func handler(w http.ResponseWriter, r *http.Request){
 }
 
 func addHandler(w http.ResponseWriter, r *http.Request) {
+
   if r.Method == "POST" {
+
     type addJson struct {
       UID string
       Amount string
     }
+
     r.ParseForm()
     addReq := addJson{
       UID: r.Form.Get("uID"),
       Amount: r.Form.Get("amount"),
     }
+
     fmt.Fprintf(w,
       "User ID: " + addReq.UID + "\n" +
       "Amount Added: " + addReq.Amount)
+
+    /*txReq := txJson{
+      Action: "add",
+      Payload: addReq,
+    }*/
+
+    // now we're gonna open the socket and send the payload
+    conn, err := net.Dial("tcp", "tx:8082")
+    if err != nil {
+      panic(err)
+    }
+    conn.Write([]byte("Hello" + "\n"))
+    log.Println("waiting for response from tx server..")
+    message, _ := bufio.NewReader(conn).ReadString('\n')
+    log.Println("Message from server: " + message)
   }
 }
 
