@@ -3,10 +3,12 @@ package main
 import (
   "log"
   "fmt"
+  "net"
   "net/http"
   "html/template"
   "strconv"
   "strings"
+  "bufio"
 )
 
 type Handler struct {}
@@ -57,5 +59,27 @@ func (handler *Handler) quote(w http.ResponseWriter, r *http.Request) {
   err = temp.Execute(w, nil)
   if err != nil{
     log.Println("template execution error: ", err)
+  }
+
+  if r.Method == "POST" {
+    r.ParseForm()
+    uID := r.Form.Get("uID")
+    stocksym := r.Form.Get("stocksym")
+
+    log.Println("UID: " + uID + ", Stock: " + stocksym)
+
+    //hit quote server
+    conn, err := net.Dial("tcp", "192.168.0.29:3333")
+
+    if err != nil{
+    	log.Println("error hitting quote server: ", err)
+    }
+
+    fmt.Fprintf(conn, uID + ", " + stocksym)
+    message, _ := bufio.NewReader(conn).ReadString('\n')
+
+    fmt.Fprintf(w,
+      "Success!\n\n" +
+      "Quote Server Response: " + message)
   }
 }
