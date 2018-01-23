@@ -19,3 +19,15 @@ func (handler *Handler) index(w http.ResponseWriter, r *http.Request) {
     log.Println("template execution error: ", err)
   }
 }
+
+func (handler *Handler) quote(w http.ResponseWriter, r *http.Request) {
+  temp, err := template.ParseFiles("templates/quote.html")
+  if err != nil {
+    log.Println("template parsing error: ", err)
+  }
+
+  err = temp.Execute(w, nil)
+  if err != nil{
+    log.Println("template execution error: ", err)
+  }
+}
