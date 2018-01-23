@@ -1,0 +1,2 @@
+#!/bin/bash
+docker exec -it db_container psql -U badgerboi

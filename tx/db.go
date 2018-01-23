@@ -33,5 +33,6 @@ func (db *DB) cleanUp() {
 
 // automatically run any migrations that are needed (doesn't do all of them. See docs.
 func (db *DB) autoMigrate() {
+   log.Println("Migrating..")
 	 db.conn.AutoMigrate(&User{})
 }

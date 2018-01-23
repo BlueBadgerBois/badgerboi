@@ -7,4 +7,5 @@ import (
 type User struct {
 	gorm.Model
 	Username string
+  Current_money int
 }

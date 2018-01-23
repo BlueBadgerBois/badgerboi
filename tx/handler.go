@@ -5,6 +5,7 @@ import (
   "fmt"
   "net/http"
   "html/template"
+  "strconv"
 )
 
 type Handler struct {}
@@ -13,13 +14,17 @@ func (handler *Handler) addHandler(w http.ResponseWriter, r *http.Request) {
   if r.Method == "POST" {
     r.ParseForm()
     uID := r.Form.Get("uID")
-    amount := r.Form.Get("amount")
+    amount, _ := strconv.Atoi(r.Form.Get("amount"))
 
-    log.Println("UID: " + uID + ", Amount: " + amount)
+    u := User{Username: uID}
+
+    var user User
+    db.conn.FirstOrCreate(&user, &u)
+
     fmt.Fprintf(w,
       "Success!\n\n" +
       "User ID: " + uID + "\n" +
-      "Amount Added: " + amount)
+      "Amount Added: " + string(amount))
   }
 }
 
