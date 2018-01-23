@@ -12,7 +12,7 @@ import (
 )
 
 const (
-    CONN_HOST = "localhost"
+    CONN_HOST = "quoteServer"
     CONN_PORT = "3333"
     CONN_TYPE = "tcp"
 )
@@ -34,11 +34,11 @@ func getStockResponse(buf []byte) string {
     os.Exit(1)
   }
 
-  var quoteRes string = strconv.Itoa(rand.Intn(999)) + "." + strconv.Itoa(rand.Intn(99)) +	//Quote
-  	", " + sp[0] +	//Symbol
-  	", " + sp[1] +	//UserID
-  	", " + time.Now().String() + //Timestamp
-  	", abc"	//CryptoKey
+  var quoteRes string = strconv.Itoa(rand.Intn(999)) + "." + strconv.Itoa(rand.Intn(99)) +  //Quote
+    ", " + sp[0] +  //Symbol
+    ", " + sp[1] +  //UserID
+    ", " + time.Now().String() + //Timestamp
+    ", abc" //CryptoKey
 
   return quoteRes
 }
