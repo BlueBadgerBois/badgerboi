@@ -20,5 +20,5 @@ reloadtx:
 uptx:
 	docker-compose up --no-deps tx
 
-upcassandra:
-	docker-compose up cassandra
+updb:
+	docker-compose up db

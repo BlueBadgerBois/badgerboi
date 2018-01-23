@@ -1,20 +1,18 @@
 package main
 
-// import (
-// 	"log"
-// )
+import (
+	"log"
+)
 
 const db_host = "cassandra"
 const db_keyspace = "badgerboi"
 
+var db = DB{} // this is global so everything can see it
 
 func main() {
 	// connect to db
-	db := DB{}
 	db.init()
 	defer db.cleanUp()
-
-	// db.conn.Create(&User{Username: "chris"})
 
 	log.Println("Running tx server")
 }
