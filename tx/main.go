@@ -18,6 +18,7 @@ func main() {
 
   http.HandleFunc("/", handler.index)
   http.HandleFunc("/quote", handler.quote)
+  http.HandleFunc("/add", handler.addHandler)
   http.ListenAndServe(":8082", nil)
 
 	log.Println("Running tx server")
