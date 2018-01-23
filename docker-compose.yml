@@ -37,3 +37,15 @@ services:
       POSTGRES_PASSWORD: badgerboi
       POSTGRES_USER: badgerboi
       POSTGRES_DB: badgerboi
+  quote:
+    container_name: quote_container
+    ports:
+      - "3333:3333"
+    build: ./quoteServer
+    volumes:
+      - ./quoteServer:/go/src/app
+    networks:
+      default:
+        aliases:
+          - quoteServer
+

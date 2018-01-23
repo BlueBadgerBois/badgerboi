@@ -22,3 +22,6 @@ uptx:
 
 updb:
 	docker-compose up db
+
+upquote:
+	docker-compose up --no-deps quote

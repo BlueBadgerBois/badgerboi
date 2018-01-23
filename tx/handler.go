@@ -69,7 +69,7 @@ func (handler *Handler) quote(w http.ResponseWriter, r *http.Request) {
     log.Println("UID: " + uID + ", Stock: " + stocksym)
 
     //hit quote server
-    conn, err := net.Dial("tcp", "192.168.0.29:3333")
+    conn, err := net.Dial("tcp", "localhost:3333")
 
     if err != nil{
     	log.Println("error hitting quote server: ", err)
