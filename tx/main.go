@@ -17,6 +17,7 @@ func main() {
 	defer db.cleanUp()
 
   http.HandleFunc("/", handler.index)
+  http.HandleFunc("/add", handler.addHandler)
   http.ListenAndServe(":8082", nil)
 
 	log.Println("Running tx server")
