@@ -1,34 +1,35 @@
 version: '3'
 services:
-  tx:
-    # need to start using healthcheck to ensure cassandra is up. sleep could be adequate for now tho
-    container_name: tx_container
-    ports:
-      - "8082:8082"
-    depends_on:
-      - db
-    build: ./tx
-    volumes:
-      - ./tx:/go/src/app
-      - ./db/:/db
-    networks:
-      default:
-        aliases:
-          - tx
   web:
+    # need to start using healthcheck to ensure cassandra is up. sleep could be adequate for now tho
     container_name: web_container
     ports:
-      - "8080:8080"
-      - "8081:8081"
+      - "8082:8082" # port that is exposed for the web server
     depends_on:
-      - tx
-    build: ./web
+      - db
+    build: ./server
     volumes:
-      - ./web:/go/src/app
+      - ./server:/go/src/app
+      - ./db/:/db
+    environment:
+      ROLE: web
     networks:
       default:
         aliases:
           - web
+  job:
+    container_name: job_container
+    depends_on:
+      - db
+    build: ./server
+    volumes:
+      - ./server:/go/src/app
+    networks:
+      default:
+        aliases:
+          - job
+    environment:
+      ROLE: job
   db:
     container_name: db_container
     image: postgres

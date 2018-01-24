@@ -8,17 +8,17 @@ up:
 reload:
 	docker-compose up --build
 
-reloadweb:
-	docker-compose up --no-deps --build web
-
 upweb:
 	docker-compose up --no-deps web
 
-reloadtx:
-	docker-compose up --no-deps --build tx
+reloadweb:
+	docker-compose up --no-deps --build web
 
-uptx:
-	docker-compose up --no-deps tx
+upjob:
+	docker-compose up --no-deps job
+
+reloadjob:
+	docker-compose up --no-deps --build job
 
 updb:
 	docker-compose up db
