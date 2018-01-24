@@ -6,20 +6,11 @@
   make build
 ```
 
-#### 2. Start cassandra container
+#### 2. Start postgres container
 In a separate shell:
 ```
-  make upcassandra
+  make postgres
 ```
-
-
-Optional: If this is your first time running, you'll need to bootstrap the database:
-Wait until cassandra outputs that it is listening (something like `Starting listening for CQL clients on /0.0.0.0:9042`),
-then do:
-```
-  ./scripts/seed.sh
-```
-This creates the keyspace and creates the users table.
 
 #### 3. Start transaction server container
 In a separate shell:
