@@ -13,7 +13,7 @@ import (
 
 type Handler struct {}
 
-func (handler *Handler) summaryHandler(w http.ResponseWriter, r *http.Request) {
+func (handler *Handler) summary(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "GET" {
 		r.ParseForm()
 		uID := r.Form.Get("uID")
@@ -25,9 +25,6 @@ func (handler *Handler) summaryHandler(w http.ResponseWriter, r *http.Request) {
 			fmt.Fprintf(w, "This user doesn't exist!")
 			return
 		}
-
-		// if user == (User{}) { // this compares value of user retrieved to an empty User type
-		// }
 
 		fmt.Fprintf(w,
 			"Summary:\n\n" +
