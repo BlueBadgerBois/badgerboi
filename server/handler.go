@@ -17,9 +17,9 @@ type Handler struct {}
 func (handler *Handler) summary(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "GET" {
 		r.ParseForm()
-		uID := r.Form.Get("uID")
+		username := r.Form.Get("username")
 
-		u := User{Username: uID}
+		u := User{Username: username}
 
 		var user User
 		if db.conn.First(&user, &u).RecordNotFound() {
@@ -29,7 +29,7 @@ func (handler *Handler) summary(w http.ResponseWriter, r *http.Request) {
 
 		fmt.Fprintf(w,
 			"Summary:\n\n" +
-			"Username: " + uID + "\n" +
+			"Username: " + username + "\n" +
 			"Money: " + strconv.Itoa(int(user.CurrentMoney)))
 	}
 }
@@ -37,12 +37,12 @@ func (handler *Handler) summary(w http.ResponseWriter, r *http.Request) {
 func (handler *Handler) add(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "POST" {
 		r.ParseForm()
-		uID := r.Form.Get("uID")
+		username := r.Form.Get("username")
 		amount := r.Form.Get("amount")
 
 		amountFormatted := stringMoneyToCents(amount)
 
-		u := User{Username: uID}
+		u := User{Username: username}
 
 		var user User
 		db.conn.FirstOrCreate(&user, &u)
@@ -55,7 +55,7 @@ func (handler *Handler) add(w http.ResponseWriter, r *http.Request) {
 
 		fmt.Fprintf(w,
 		"Success!\n\n" +
-		"User ID: " + uID + "\n" +
+		"User ID: " + username + "\n" +
 		"Amount Added: " + string(amount))
 	}
 }
@@ -73,22 +73,12 @@ func (handler *Handler) index(w http.ResponseWriter, r *http.Request) {
 }
 
 func (handler *Handler) quote(w http.ResponseWriter, r *http.Request) {
-	temp, err := template.ParseFiles("templates/quote.html")
-	if err != nil {
-		log.Println("template parsing error: ", err)
-	}
-
-	err = temp.Execute(w, nil)
-	if err != nil{
-		log.Println("template execution error: ", err)
-	}
-
 	if r.Method == "POST" {
 		r.ParseForm()
-		uID := r.Form.Get("uID")
+		username := r.Form.Get("username")
 		stocksym := r.Form.Get("stocksym")
 
-		log.Println("UID: " + uID + ", Stock: " + stocksym)
+		log.Println("UID: " + username + ", Stock: " + stocksym)
 
 		//hit quote server
 		conn, err := net.Dial("tcp", "quoteServer:3333")
@@ -97,7 +87,7 @@ func (handler *Handler) quote(w http.ResponseWriter, r *http.Request) {
 			log.Println("error hitting quote server: ", err)
 		}
 
-		fmt.Fprintf(conn, uID + ", " + stocksym)
+		fmt.Fprintf(conn, username + ", " + stocksym)
 		message, _ := bufio.NewReader(conn).ReadString('\n')
 
 		fmt.Fprintf(w,
@@ -150,13 +140,13 @@ func quoteResponseToMap(message string) map[string]string {
 func (handler *Handler) buy(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "POST" {
 		r.ParseForm()
-		uID := r.Form.Get("uID")
+		username := r.Form.Get("username")
 		buyAmount := r.Form.Get("buyAmount")
 		stockSymbol := r.Form.Get("stockSymbol")
 
 		// amountFormatted := stringMoneyToCents(buyAmount) // needs fix
 
-		u := User{Username: uID}
+		u := User{Username: username}
 
 		var user User
 		db.conn.FirstOrCreate(&user, &u)
@@ -168,7 +158,7 @@ func (handler *Handler) buy(w http.ResponseWriter, r *http.Request) {
 
 		fmt.Fprintf(w,
 		"Success!\n\n" +
-		"User ID: " + uID + "\n" +
+		"User ID: " + username + "\n" +
 		"Stock Symbol: " + stockSymbol + "\n" +
 		"Amount bought: " + string(buyAmount))
 	}

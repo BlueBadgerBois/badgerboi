@@ -2,15 +2,15 @@
 <form action="add" method="post">
   <fieldset>
     <legend>Add</legend>
-    <input type="text" name="uID" placeholder="username" />
+    <input type="text" name="username" placeholder="username" />
     <input type="text" name="amount" placeholder="$" />
     <input type="submit" />
   </fieldset>
 </form>
-<form action="/quote" method="post">
+<form action="quote" method="post">
   <fieldset>
     <legend>Quote</legend>
-    <input type="text" name="uID" placeholder="username" />
+    <input type="text" name="username" placeholder="username" />
     <input type="text" name="stocksym" placeholder="stock symbol" />
     <input type="submit" />
   </fieldset>
@@ -18,14 +18,23 @@
 <form action="summary" method="get">
   <fieldset>
     <legend>User Summary</legend>
-    <input type="text" name="uID" placeholder="username" />
+    <input type="text" name="username" placeholder="username" />
     <input type="submit" />
   </fieldset>
 </form>
 <form action="buy" method="post">
   <fieldset>
     <legend>Buy</legend>
-    <input type="text" name="uID" placeholder="username" />
+    <input type="text" name="username" placeholder="username" />
+    <input type="text" name="stockSymbol" placeholder="symbol" />
+    <input type="text" name="buyAmount" placeholder="$" />
+    <input type="submit" />
+  </fieldset>
+</form>
+<form action="setBuyTrigger" method="post">
+  <fieldset>
+    <legend>Set Buy Trigger</legend>
+    <input type="text" name="username" placeholder="username" />
     <input type="text" name="stockSymbol" placeholder="symbol" />
     <input type="text" name="buyAmount" placeholder="$" />
     <input type="submit" />
