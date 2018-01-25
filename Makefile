@@ -25,3 +25,6 @@ updb:
 
 upquote:
 	docker-compose up --no-deps quote
+
+reloadquote:
+	docker-compose up --no-deps --build quote
