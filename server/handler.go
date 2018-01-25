@@ -91,25 +91,45 @@ func (handler *Handler) quote(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(conn, username + ", " + stocksym)
 		message, _ := bufio.NewReader(conn).ReadString('\n')
 
+
+		responseMap := quoteResponseToMap(message)
+
+		user := userFromUsername(responseMap["username"])
+
+		logQuote(responseMap, user)
+
 		fmt.Fprintf(w,
 		"Success!\n\n" +
 		"Quote Server Response: " + message)
-
-		logQuoteResponse(message)
 	}
 }
 
-func logQuoteResponse(message string) {
-	responseParams := quoteResponseToMap(message)
+func userFromUsername(username string) *User {
+	u := User{Username: username}
 
-	logItem := buildQuoteServerLogItemStruct()
-	logItem.Price = responseParams["price"]
-	logItem.StockSymbol = responseParams["stockSymbol"]
-	logItem.Username = responseParams["username"]
-	logItem.QuoteServerTime = responseParams["quoteServerTime"]
-	logItem.Cryptokey = responseParams["cryptokey"]
+	var user User
+	db.conn.FirstOrCreate(&user, &u)
+	return &user
+}
 
-	logItem.SaveRecord()
+func logQuote(params map[string]string, user *User) {
+
+	commandLogItem := buildUserCommandLogItemStruct()
+	commandLogItem.Command = "QUOTE"
+	commandLogItem.Username = params["username"]
+	commandLogItem.StockSymbol = params["stockSymbol"]
+	commandLogItem.Funds = user.CurrentMoney
+
+
+	quoteLogItem := buildQuoteServerLogItemStruct()
+	quoteLogItem.Price = params["price"]
+	quoteLogItem.StockSymbol = params["stockSymbol"]
+	quoteLogItem.Username = params["username"]
+	quoteLogItem.QuoteServerTime = params["quoteServerTime"]
+	quoteLogItem.Cryptokey = params["cryptokey"]
+
+	commandLogItem.SaveRecord()
+	quoteLogItem.SaveRecord()
 }
 
 func bytesToString(bytes []byte) string {
