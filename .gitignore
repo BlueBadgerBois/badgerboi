@@ -1,4 +1,3 @@
-web/tmp/*
-tx/tmp/*
+server/tmp/*
 web/cert.pem
 web/key.pem
