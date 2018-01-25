@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"html/template"
-	"encoding/json"
 	"fmt"
 	"log"
 	"net"
@@ -104,22 +103,12 @@ func (handler *Handler) quote(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func userFromUsername(username string) *User {
-	u := User{Username: username}
-
-	var user User
-	db.conn.FirstOrCreate(&user, &u)
-	return &user
-}
-
 func logQuote(params map[string]string, user *User) {
-
 	commandLogItem := buildUserCommandLogItemStruct()
 	commandLogItem.Command = "QUOTE"
 	commandLogItem.Username = params["username"]
 	commandLogItem.StockSymbol = params["stockSymbol"]
 	commandLogItem.Funds = user.CurrentMoney
-
 
 	quoteLogItem := buildQuoteServerLogItemStruct()
 	quoteLogItem.Price = params["price"]
@@ -132,29 +121,7 @@ func logQuote(params map[string]string, user *User) {
 	quoteLogItem.SaveRecord()
 }
 
-func bytesToString(bytes []byte) string {
-	return string(bytes[:])
-}
-
-func jsonFromMap(inputMap map[string]string) string {
-	jsonBytes, err := json.Marshal(inputMap)
-
-	if err != nil {
-		log.Fatal("Unable to convert map %s to json", inputMap)
-	}
-
-	jsonString := bytesToString(jsonBytes)
-
-	return jsonString
-}
-
-func enterQueryLogItem(jsonData string) {
-	// TODO
-}
-
 func quoteResponseToMap(message string) map[string]string {
-	// price stockSymbol, username, quoteServerTime, cryptokey
-
 	splitMessage := strings.Split(message, ",")
 
 	log.Println("split message: ", splitMessage)

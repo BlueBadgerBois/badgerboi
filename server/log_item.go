@@ -69,6 +69,11 @@ func (logItem *UserCommandLogItem) SaveRecord() {
 	db.saveLogItem(jsonString)
 }
 
+func bytesToString(bytes []byte) string {
+	return string(bytes[:])
+}
+
+
 // Every hit to the quote server requires a log entry with the results. The
 // price, symbol, username, timestamp and cryptokey are as returned by the quote server
 type QuoteServerLogItem struct {
