@@ -46,3 +46,9 @@ func (db *DB) autoMigrate() {
 func (db *DB) migrate() {
 	// migrations go here
 }
+
+func (db *DB) saveLogItem(jsonData string) {
+	logItem := LogItem{Data: jsonData}
+	db.conn.NewRecord(logItem)
+	db.conn.Create(&logItem)
+}

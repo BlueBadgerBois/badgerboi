@@ -95,9 +95,21 @@ func (handler *Handler) quote(w http.ResponseWriter, r *http.Request) {
 		"Success!\n\n" +
 		"Quote Server Response: " + message)
 
-		log.Println("JSON from message map: ", jsonFromMap(quoteResponseToMap(message)))
-
+		logQuoteResponse(message)
 	}
+}
+
+func logQuoteResponse(message string) {
+	responseParams := quoteResponseToMap(message)
+
+	logItem := buildQuoteServerLogItemStruct()
+	logItem.Price = responseParams["price"]
+	logItem.StockSymbol = responseParams["stockSymbol"]
+	logItem.Username = responseParams["username"]
+	logItem.QuoteServerTime = responseParams["quoteServerTime"]
+	logItem.Cryptokey = responseParams["cryptokey"]
+
+	logItem.SaveRecord()
 }
 
 func bytesToString(bytes []byte) string {

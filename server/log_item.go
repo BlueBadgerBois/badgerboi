@@ -1,6 +1,8 @@
 package main
 
 import (
+	"encoding/json"
+	"log"
 	"github.com/jinzhu/gorm"
 )
 
@@ -28,8 +30,28 @@ var COMMAND_TYPES = [...]string{
 // These will be derived when dumping the logs
 type LogItem struct {
 	gorm.Model
-	data string // JSON containing the other attributes
+	Data string // JSON containing the other attributes
 }
+
+func buildQuoteServerLogItemStruct() QuoteServerLogItem {
+	logItem := QuoteServerLogItem {
+		LogType: "QuoteServerType",
+		Server: "someServer",
+	}
+	return logItem
+}
+
+func (logItem *QuoteServerLogItem) SaveRecord() {
+	jsonBytes, err := json.Marshal(logItem)
+
+	if err != nil { log.Fatal("Unable to convert struct %s to json", logItem) }
+
+	jsonString := bytesToString(jsonBytes)
+
+	db.saveLogItem(jsonString)
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // The structs below are tostructure the data string for a LogItem.
 // Marshal to JSON string before passing to a new LogItem.
@@ -48,7 +70,7 @@ type UserCommandLogItem struct {
 
 // Every hit to the quote server requires a log entry with the results. The
 // price, symbol, username, timestamp and cryptokey are as returned by the quote server
-type QuoteLogItem struct {
+type QuoteServerLogItem struct {
 	LogType string // 'QuoteServerType'
 	Server string
 	Price string
@@ -105,4 +127,3 @@ type DebugLogItem struct {
 	Funds uint
 	DebugMessage string
 }
-
