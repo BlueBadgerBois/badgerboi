@@ -15,6 +15,7 @@ import (
 type Handler struct {}
 
 func (handler *Handler) summary(w http.ResponseWriter, r *http.Request) {
+	// TODO iterate through all holdings. Need to timplement buy first
 	if r.Method == "GET" {
 		r.ParseForm()
 		username := r.Form.Get("username")
@@ -27,11 +28,22 @@ func (handler *Handler) summary(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		logSummary(&user)
+
 		fmt.Fprintf(w,
 			"Summary:\n\n" +
 			"Username: " + username + "\n" +
 			"Money: " + strconv.Itoa(int(user.CurrentMoney)))
 	}
+}
+
+func logSummary(user *User) {
+	commandLogItem := buildUserCommandLogItemStruct()
+	commandLogItem.Command = "DISPLAY_SUMMARY"
+	commandLogItem.Username = user.Username
+	commandLogItem.StockSymbol = "" // No stock symbol for a summary
+	commandLogItem.Funds = user.CurrentMoney
+	commandLogItem.SaveRecord()
 }
 
 func (handler *Handler) add(w http.ResponseWriter, r *http.Request) {
@@ -93,7 +105,7 @@ func (handler *Handler) quote(w http.ResponseWriter, r *http.Request) {
 
 		responseMap := quoteResponseToMap(message)
 
-		user := userFromUsername(responseMap["username"])
+		user := userFromUsernameOrCreate(responseMap["username"])
 
 		logQuote(responseMap, user)
 

@@ -33,19 +33,18 @@ type LogItem struct {
 	Data string // JSON containing the other attributes
 }
 
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-// The structs below are tostructure the data string for a LogItem.
+// The structs below are to structure the data string for a LogItem.
 // Marshal to JSON string before passing to a new LogItem.
 
-// User commands come from the user command files or from manual entries in
-// the students' web forms
 type UserCommandLogItem struct {
+	// User commands come from the user command files or from manual entries in
+	// the students' web forms
 	LogType string // 'UserCommandType'
 	Server string
 	Command string
 	Username string
-	StockSymbol string
+	StockSymbol string // what to do for summary?
 	Filename string
 	Funds uint
 }
@@ -69,14 +68,9 @@ func (logItem *UserCommandLogItem) SaveRecord() {
 	db.saveLogItem(jsonString)
 }
 
-func bytesToString(bytes []byte) string {
-	return string(bytes[:])
-}
-
-
-// Every hit to the quote server requires a log entry with the results. The
-// price, symbol, username, timestamp and cryptokey are as returned by the quote server
 type QuoteServerLogItem struct {
+	// Every hit to the quote server requires a log entry with the results. The
+	// price, symbol, username, timestamp and cryptokey are as returned by the quote server
 	LogType string // 'QuoteServerType'
 	Server string
 	Price string
@@ -105,9 +99,9 @@ func (logItem *QuoteServerLogItem) SaveRecord() {
 }
 
 
-// Any time a user's account is touched, an account message is printed.
-// Appropriate actions are "add" or "remove".
 type AccountTransactionLogItem struct {
+	// Any time a user's account is touched, an account message is printed.
+	// Appropriate actions are "add" or "remove".
 	LogType string // 'AccountTransactionType'
 	Server string
 	Action string
@@ -115,9 +109,9 @@ type AccountTransactionLogItem struct {
 	Funds uint
 }
 
-// System events can be current user commands, interserver communications,
-// or the execution of previously set triggers
 type SystemEventLogItem struct {
+	// System events can be current user commands, interserver communications,
+	// or the execution of previously set triggers
 	LogType string // 'SystemEventType'
 	Server string
 	Command string
@@ -127,9 +121,9 @@ type SystemEventLogItem struct {
 	Funds uint
 }
 
-// Error messages contain all the information of user commands, in
-// addition to an optional error message
 type ErrorEventLogItem struct {
+	// Error messages contain all the information of user commands, in
+	// addition to an optional error message
 	LogType string // 'ErrorEventType'
 	Server string
 	Command string
@@ -140,9 +134,9 @@ type ErrorEventLogItem struct {
 	ErrorMessage string
 }
 
-// Debugging messages contain all the information of user commands, in
-// addition to an optional debug message
 type DebugLogItem struct {
+	// Debugging messages contain all the information of user commands, in
+	// addition to an optional debug message
 	LogType string // 'DebugType'
 	Server string
 	Command string
@@ -151,4 +145,8 @@ type DebugLogItem struct {
 	Filename string
 	Funds uint
 	DebugMessage string
+}
+
+func bytesToString(bytes []byte) string {
+	return string(bytes[:])
 }
