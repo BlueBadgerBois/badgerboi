@@ -7,7 +7,7 @@ import (
 type User struct {
 	gorm.Model
 	Username string
-	Current_money uint
+	CurrentMoney uint
 	Transactions []Transaction
 	StockHoldings []StockHolding
 }

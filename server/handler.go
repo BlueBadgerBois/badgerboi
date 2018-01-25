@@ -21,16 +21,18 @@ func (handler *Handler) summaryHandler(w http.ResponseWriter, r *http.Request) {
 		u := User{Username: uID}
 
 		var user User
-		db.conn.First(&user, &u)
-		if user == (User{}) { // this compares value of user retrieved to an empty User type
+		if db.conn.First(&user, &u).RecordNotFound() {
 			fmt.Fprintf(w, "This user doesn't exist!")
 			return
 		}
 
+		// if user == (User{}) { // this compares value of user retrieved to an empty User type
+		// }
+
 		fmt.Fprintf(w,
 			"Summary:\n\n" +
 			"Username: " + uID + "\n" +
-			"Money: " + strconv.Itoa(user.Current_money))
+			"Money: " + strconv.Itoa(int(user.CurrentMoney)))
 	}
 }
 
@@ -47,10 +49,10 @@ func (handler *Handler) add(w http.ResponseWriter, r *http.Request) {
 		var user User
 		db.conn.FirstOrCreate(&user, &u)
 
-		newAmount := user.Current_money + amountFormatted
+		newAmount := user.CurrentMoney + amountFormatted
 
-		user.Current_money = newAmount
-		// user.Current_money = 123
+		user.CurrentMoney = newAmount
+		// user.CurrentMoney = 123
 		db.conn.Save(&user)
 
 		fmt.Fprintf(w,
@@ -61,7 +63,7 @@ func (handler *Handler) add(w http.ResponseWriter, r *http.Request) {
 }
 
 func (handler *Handler) index(w http.ResponseWriter, r *http.Request) {
-	temp, err := template.ParseFiles("templates/login.html")
+	temp, err := template.ParseFiles("templates/index.html")
 	if err != nil {
 		log.Println("template parsing error: ", err)
 	}
@@ -113,18 +115,17 @@ func (handler *Handler) buy(w http.ResponseWriter, r *http.Request) {
 		buyAmount := r.Form.Get("buyAmount")
 		stockSymbol := r.Form.Get("stockSymbol")
 
-		amountFormatted := stringMoneyToCents(buyAmount) // needs fix
-		log.Printf("amount ", amountFormatted)
+		// amountFormatted := stringMoneyToCents(buyAmount) // needs fix
 
 		u := User{Username: uID}
 
 		var user User
 		db.conn.FirstOrCreate(&user, &u)
 
-		// newAmount := user.Current_money + amountFormatted
+		// newAmount := user.CurrentMoney + amountFormatted
 
-		// user.Current_money = newAmount
-		// db.conn.Save(&user)
+		user.CurrentMoney = 1211
+		db.conn.Save(&user)
 
 		fmt.Fprintf(w,
 		"Success!\n\n" +

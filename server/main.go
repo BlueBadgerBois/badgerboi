@@ -4,6 +4,8 @@ import (
 	"log"
 	"net/http"
 	"os"
+
+	"github.com/kabukky/httpscerts"
 )
 
 var db = DB{} // this is global so everything can see it
@@ -34,6 +36,8 @@ func runAsJobServer() {
 }
 
 func runAsWebServer() {
+	// generateCertsIfNotPresent()
+
 	// web server handlers
 	log.Println("Running web server.")
 	http.HandleFunc("/", handler.index)
@@ -41,6 +45,20 @@ func runAsWebServer() {
 	http.HandleFunc("/add", handler.add)
 	http.HandleFunc("/buy", handler.buy)
 	http.ListenAndServe(":8082", nil)
+	// http.ListenAndServeTLS(":8082", "cert.pem", "key.pem", nil)
+}
+
+func generateCertsIfNotPresent() {
+	// Check if the cert files are available.
+	err := httpscerts.Check("cert.pem", "key.pem")
+
+	// If they are not available, generate new ones.
+	if err != nil {
+		err = httpscerts.Generate("cert.pem", "key.pem", "web:8081")
+		if err != nil {
+			log.Fatal("Error: Couldn't create https certs.")
+		}
+	}
 }
 
 func getServerRole() string {
