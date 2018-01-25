@@ -38,6 +38,7 @@ func (db *DB) autoMigrate() {
 	db.conn.AutoMigrate(&User{})
 	db.conn.AutoMigrate(&Transaction{})
 	db.conn.AutoMigrate(&StockHolding{})
+	db.conn.AutoMigrate(&LogItem{})
 	log.Println("Finished auto-migrating.")
 }
 

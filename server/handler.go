@@ -1,14 +1,15 @@
 package main
 
 import (
-	"log"
+	"bufio"
+	"html/template"
+	"encoding/json"
 	"fmt"
+	"log"
 	"net"
 	"net/http"
-	"html/template"
-	"strconv"
 	"strings"
-	"bufio"
+	"strconv"
 )
 
 type Handler struct {}
@@ -102,7 +103,48 @@ func (handler *Handler) quote(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w,
 		"Success!\n\n" +
 		"Quote Server Response: " + message)
+
+		log.Println("JSON from message map: ", jsonFromMap(quoteResponseToMap(message)))
+
 	}
+}
+
+func bytesToString(bytes []byte) string {
+	return string(bytes[:])
+}
+
+func jsonFromMap(inputMap map[string]string) string {
+	jsonBytes, err := json.Marshal(inputMap)
+
+	if err != nil {
+		log.Fatal("Unable to convert map %s to json", inputMap)
+	}
+
+	jsonString := bytesToString(jsonBytes)
+
+	return jsonString
+}
+
+func enterQueryLogItem(jsonData string) {
+	// TODO
+}
+
+func quoteResponseToMap(message string) map[string]string {
+	// price stockSymbol, username, quoteServerTime, cryptokey
+
+	splitMessage := strings.Split(message, ",")
+
+	log.Println("split message: ", splitMessage)
+
+	outputMap := map[string]string {
+		"price": strings.TrimSpace(splitMessage[0]),
+		"username": strings.TrimSpace(splitMessage[1]),
+		"stockSymbol": strings.TrimSpace(splitMessage[2]),
+		"quoteServerTime": strings.TrimSpace(splitMessage[3]),
+		"cryptokey": strings.TrimSpace(splitMessage[4]),
+	}
+
+	return outputMap
 }
 
 func (handler *Handler) buy(w http.ResponseWriter, r *http.Request) {
@@ -132,7 +174,7 @@ func (handler *Handler) buy(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func stringMoneyToCents(amount string) (uint) {
+func stringMoneyToCents(amount string) (uint) { // this needs to be fixed
 	formattedAmount, _ := strconv.Atoi(strings.Replace(amount, ".", "", -1))
 	return uint(formattedAmount)
 }
