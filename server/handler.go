@@ -88,40 +88,39 @@ func (handler *Handler) quote(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "POST" {
 		r.ParseForm()
 		username := r.Form.Get("username")
-		stocksym := r.Form.Get("stocksym")
+		stockSymbol := r.Form.Get("stocksym")
 
-		log.Println("UID: " + username + ", Stock: " + stocksym)
-
-		//hit quote server
-		conn, err := net.Dial("tcp", "quoteServer:3333")
-
-		if err != nil{
-			log.Println("error hitting quote server: ", err)
-		}
-
-		fmt.Fprintf(conn, username + ", " + stocksym)
-		message, _ := bufio.NewReader(conn).ReadString('\n')
-
-
-		responseMap := quoteResponseToMap(message)
+		responseMap := getQuoteFromServer(username, stockSymbol)
 
 		user := userFromUsernameOrCreate(responseMap["username"])
 
-		logQuote(responseMap, user)
+		logQuoteCommand(responseMap, user)
 
-		fmt.Fprintf(w,
-		"Success!\n\n" +
-		"Quote Server Response: " + message)
+		fmt.Fprintf(w, "Success!\n\n Quote Server Response: %v", responseMap)
 	}
 }
 
-func logQuote(params map[string]string, user *User) {
-	commandLogItem := buildUserCommandLogItemStruct()
-	commandLogItem.Command = "QUOTE"
-	commandLogItem.Username = params["username"]
-	commandLogItem.StockSymbol = params["stockSymbol"]
-	commandLogItem.Funds = user.CurrentMoney
 
+// Fetch a quote from the quote server and log it
+func getQuoteFromServer(username string, stockSymbol string) map[string]string {
+	conn, err := net.Dial("tcp", "quoteServer:3333")
+
+	if err != nil{
+		log.Println("error hitting quote server: ", err)
+	}
+
+	fmt.Fprintf(conn, username + ", " + stockSymbol)
+	message, _ := bufio.NewReader(conn).ReadString('\n')
+
+	responseMap := quoteResponseToMap(message)
+
+	logQuoteServer(responseMap)
+
+	return responseMap
+}
+
+// Save a QuoteServerLogItem
+func logQuoteServer(params map[string]string) {
 	quoteLogItem := buildQuoteServerLogItemStruct()
 	quoteLogItem.Price = params["price"]
 	quoteLogItem.StockSymbol = params["stockSymbol"]
@@ -129,8 +128,18 @@ func logQuote(params map[string]string, user *User) {
 	quoteLogItem.QuoteServerTime = params["quoteServerTime"]
 	quoteLogItem.Cryptokey = params["cryptokey"]
 
-	commandLogItem.SaveRecord()
 	quoteLogItem.SaveRecord()
+}
+
+// Save a UserCommandLogItem for a QUOTE command
+func logQuoteCommand(params map[string]string, user *User) {
+	commandLogItem := buildUserCommandLogItemStruct()
+	commandLogItem.Command = "QUOTE"
+	commandLogItem.Username = params["username"]
+	commandLogItem.StockSymbol = params["stockSymbol"]
+	commandLogItem.Funds = user.CurrentMoney
+
+	commandLogItem.SaveRecord()
 }
 
 func quoteResponseToMap(message string) map[string]string {
