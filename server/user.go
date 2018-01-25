@@ -12,7 +12,7 @@ type User struct {
 	StockHoldings []StockHolding
 }
 
-func userFromUsernameOrCreate(username string) *User {
+func (db *DB) userFromUsernameOrCreate(username string) *User {
 	u := User{Username: username}
 
 	var user User

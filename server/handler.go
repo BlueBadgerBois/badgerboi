@@ -28,7 +28,7 @@ func (handler *Handler) summary(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		logSummary(&user)
+		logSummaryCommand(&user)
 
 		fmt.Fprintf(w,
 			"Summary:\n\n" +
@@ -37,7 +37,7 @@ func (handler *Handler) summary(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func logSummary(user *User) {
+func logSummaryCommand(user *User) {
 	commandLogItem := buildUserCommandLogItemStruct()
 	commandLogItem.Command = "DISPLAY_SUMMARY"
 	commandLogItem.Username = user.Username
@@ -52,24 +52,33 @@ func (handler *Handler) add(w http.ResponseWriter, r *http.Request) {
 		username := r.Form.Get("username")
 		amount := r.Form.Get("amount")
 
-		amountFormatted := stringMoneyToCents(amount)
+		amountInCents := stringMoneyToCents(amount)
 
-		u := User{Username: username}
+		user := db.userFromUsernameOrCreate(username)
 
-		var user User
-		db.conn.FirstOrCreate(&user, &u)
-
-		newAmount := user.CurrentMoney + amountFormatted
+		newAmount := user.CurrentMoney + amountInCents
 
 		user.CurrentMoney = newAmount
-		// user.CurrentMoney = 123
 		db.conn.Save(&user)
 
 		fmt.Fprintf(w,
 		"Success!\n\n" +
 		"User ID: " + username + "\n" +
-		"Amount Added: " + string(amount))
+		"Amount added in dollars: " + centsToDollarsString(amountInCents) +
+		"\nCents: " + strconv.Itoa(int(amountInCents)))
 	}
+}
+
+func centsToCentsString(cents uint) string {
+	return strconv.Itoa(int(cents))
+}
+
+func centsToDollarsString(cents uint) string {
+	// 2 is precision after decimal point to display
+	return strconv.FormatFloat(centsToDollars(cents), 'f', 2, 64)
+}
+func centsToDollars(cents uint) float64 {
+	return float64(cents) / 100
 }
 
 func (handler *Handler) index(w http.ResponseWriter, r *http.Request) {
@@ -92,7 +101,7 @@ func (handler *Handler) quote(w http.ResponseWriter, r *http.Request) {
 
 		responseMap := getQuoteFromServer(username, stockSymbol)
 
-		user := userFromUsernameOrCreate(responseMap["username"])
+		user := db.userFromUsernameOrCreate(responseMap["username"])
 
 		logQuoteCommand(responseMap, user)
 
@@ -215,7 +224,7 @@ func (handler *Handler) setBuyTrigger(w http.ResponseWriter, r *http.Request) {
   }
 }
 
-func stringMoneyToCents(amount string) (uint) { // this needs to be fixed
+func stringMoneyToCents(amount string) (uint) { // this needs to be fixed to handle improper inputs (no decimal)
 	formattedAmount, _ := strconv.Atoi(strings.Replace(amount, ".", "", -1))
 	return uint(formattedAmount)
 }
