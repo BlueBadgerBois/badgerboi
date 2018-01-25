@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"strings"
 	"strconv"
+  "errors"
 )
 
 type Handler struct {}
@@ -164,7 +165,46 @@ func (handler *Handler) buy(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (handler *Handler) setBuyTrigger(w http.ResponseWriter, r *http.Request) {
+  if r.Method == "POST" {
+    r.ParseForm()
+    username := r.Form.Get("username")
+    stockSymbol := r.Form.Get("stockSymbol")
+    buyAmount := r.Form.Get("buyAmount")
+    threshold := r.Form.Get("threshold")
+
+    user, err := authUser(username)
+    if err != nil {
+      fmt.Fprintf(w, "Error: ", err)
+      return
+    }
+
+    buyAmountFormatted, _ := strconv.Atoi(buyAmount)
+    thresholdFormatted, _ := strconv.Atoi(threshold)
+
+    t := Trigger{
+      UserID: user.ID,
+      StockSym: stockSymbol,
+      BuyAmount: uint(buyAmountFormatted),
+      PriceThreshold: uint(thresholdFormatted),
+    }
+
+    db.conn.Create(&t)
+
+    log.Println(stockSymbol, buyAmount, threshold)
+  }
+}
+
 func stringMoneyToCents(amount string) (uint) { // this needs to be fixed
 	formattedAmount, _ := strconv.Atoi(strings.Replace(amount, ".", "", -1))
 	return uint(formattedAmount)
+}
+
+func authUser(uname string) (User, error) {
+  u := User{Username: uname}
+  var user User
+	if db.conn.First(&user, &u).RecordNotFound() {
+    return user, errors.New("User not found!")
+  }
+  return user, nil
 }
