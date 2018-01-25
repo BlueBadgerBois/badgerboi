@@ -1,5 +1,5 @@
 server/tmp/*
-web/cert.pem
-web/key.pem
+server/cert.pem
+server/key.pem
 quoteServer/tmp/*
 tags
