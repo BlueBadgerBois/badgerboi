@@ -1,8 +1,7 @@
 package main
 
 import (
-	//"bytes"
-	"encoding/json"
+	"bytes"
 	"bufio"
 	"errors"
 	"html/template"
@@ -140,15 +139,13 @@ func (handler *Handler) dumplog(w http.ResponseWriter, r *http.Request) {
 			db.conn.Where(&u).Find(&log_items)
 		}
 
-		writeLogsToFile(outfile, log_items)
+		xmlLog := writeLogsToFile(outfile, log_items)
 
 		fmt.Fprintf(w, 
 			"Username: " + username + "\n" +
 			"Outfile: " + outfile + "\n" +
 			"Logfile contents: ")
-		for i := 0; i < len(log_items); i++ {
-			fmt.Fprintf(w, log_items[i].Data)
-		}
+			fmt.Fprintf(w, xmlLog)
 	}
 }
 
@@ -479,19 +476,35 @@ func centsToDollars(cents uint) float64 {
 	return float64(cents) / 100
 }
 
-func writeLogsToFile(outfile string, log_items []LogItem) {
-	//var logFileXML bytes.Buffer 
-	//logFileXML.WriteString('<?xml version="1.0"?>\n')
-	//logFileXML.WriteString('<log>\n')
+func writeLogsToFile(outfile string, log_items []LogItem) string{
+	var logFileXML bytes.Buffer 
+	logFileXML.WriteString("<?xml version=\"1.0\"?>\n")
+	logFileXML.WriteString("<log>\n")
 
 	for i := 0; i < len(log_items); i++ {
-		var jsonLogItem map[string]interface{}
-		err := json.Unmarshal([]byte(log_items[i].Data), jsonLogItem)
-		if err != nil {
-			//do nothing
-		}
-		fmt.Println(string(jsonLogItem["LogType"]))
-	}
+		fmt.Println(log_items[i].Data)
 
+		logItem := strings.Replace(log_items[i].Data, "\"", "", -1)
+		logItem = strings.Replace(logItem, "}", "", -1)
+		logItem = strings.Replace(logItem, "{", "", -1)
+
+		keyValues := strings.Split(logItem, ",")
+
+		logType := strings.Split(keyValues[0], ":")
+
+		logFileXML.WriteString("\t<" + logType[1] + ">\n")
+
+		for i := 0; i < len(keyValues); i++ {
+			attribute := strings.Split(keyValues[i], ":")
+			logFileXML.WriteString("\t\t<" + attribute[0] + ">")
+			logFileXML.WriteString(attribute[1])
+			logFileXML.WriteString("</" + attribute[0] + ">\n")
+		}
+		logFileXML.WriteString("\t</" + logType[1] + ">\n")
+	}
+	logFileXML.WriteString("</log>\n")
+
+	fmt.Println(logFileXML.String())
+	return logFileXML.String()
 	//ioutil.WriteFile(outfile, logFileXML.String())
 }
