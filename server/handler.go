@@ -101,6 +101,8 @@ func (handler *Handler) buy(w http.ResponseWriter, r *http.Request) {
 
 		user := db.userFromUsernameOrCreate(username)
 
+		logBuyCommand(stockSymbol, user)
+
 		if !user.HasEnoughMoney(amountToBuyInCents) {
 			fmt.Fprintf(w,
 			"Failure! User does not have enough money\n\n" +
@@ -128,6 +130,7 @@ func (handler *Handler) buy(w http.ResponseWriter, r *http.Request) {
 		buyTransaction.QuotedStockPrice = uint(stringMoneyToCents(quoteResponseMap["price"]))
 		db.conn.Create(&buyTransaction)
 
+
 		fmt.Fprintf(w,
 		"Transaction created. Pending buy transaction:\n\n" +
 		"User ID: " + username + "\n" +
@@ -135,6 +138,17 @@ func (handler *Handler) buy(w http.ResponseWriter, r *http.Request) {
 		"Amount to buy: " + buyAmount +
 		"\nQuoted price: " + quoteResponseMap["price"])
 	}
+}
+
+// Save a UserCommandLogItem for an ADD command
+func logBuyCommand(stockSymbol string, user *User) {
+	commandLogItem := buildUserCommandLogItemStruct()
+	commandLogItem.Command = "BUY"
+	commandLogItem.Username = user.Username
+	commandLogItem.StockSymbol = stockSymbol
+	commandLogItem.Funds = centsToDollarsString(user.CurrentMoney)
+
+	commandLogItem.SaveRecord()
 }
 
 // Save an ErrorEventLogItem
