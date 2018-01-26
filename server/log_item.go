@@ -134,6 +134,25 @@ type ErrorEventLogItem struct {
 	ErrorMessage string
 }
 
+func buildErrorEventLogItemStruct() ErrorEventLogItem {
+	logItem := ErrorEventLogItem {
+		LogType: "ErrorEventType",
+		Server: "someServer",
+		Filename: "inputFile", // this needs to be changed later to be overridden with an actual file name
+	}
+	return logItem
+}
+
+func (logItem *ErrorEventLogItem) SaveRecord() {
+	jsonBytes, err := json.Marshal(logItem)
+
+	if err != nil { log.Fatal("Unable to convert struct %s to json", logItem) }
+
+	jsonString := bytesToString(jsonBytes)
+
+	db.saveLogItem(jsonString)
+}
+
 type DebugLogItem struct {
 	// Debugging messages contain all the information of user commands, in
 	// addition to an optional debug message

@@ -19,3 +19,7 @@ func (db *DB) userFromUsernameOrCreate(username string) *User {
 	db.conn.FirstOrCreate(&user, &u)
 	return &user
 }
+
+func (user *User) HasEnoughMoney(targetAmount uint) bool {
+	return user.CurrentMoney >= targetAmount
+}

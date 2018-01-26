@@ -11,6 +11,16 @@ type Transaction struct {
 	Type string // buy/sell
 	State string // possible values: completed, pending, cancelled, expired
 	StockSymbol string // stock to buy/sell
-	DollarAmount uint // amount of the stock to buy/sell
-	QuotedStockPrice uint // Quoted price of stock (valid until 60 seconds after created_at)
+	AmountInCents uint // amount of the stock to buy/sell. change this to cents
+	QuotedStockPrice uint // Quoted price of stock in cents (valid until 60 seconds after created_at)
+}
+
+func buildBuyTransaction(user *User) Transaction {
+	buyTransaction := Transaction{
+		UserID: user.ID,
+		Type: "buy",
+		State: "pending",
+	}
+
+	return buyTransaction
 }

@@ -97,24 +97,56 @@ func (handler *Handler) buy(w http.ResponseWriter, r *http.Request) {
 		buyAmount := r.Form.Get("buyAmount")
 		stockSymbol := r.Form.Get("stockSymbol")
 
-		// amountFormatted := stringMoneyToCents(buyAmount) // needs fix
+		amountToBuyInCents := stringMoneyToCents(buyAmount)
 
-		u := User{Username: username}
+		user := db.userFromUsernameOrCreate(username)
 
-		var user User
-		db.conn.FirstOrCreate(&user, &u)
+		if !user.HasEnoughMoney(amountToBuyInCents) {
+			fmt.Fprintf(w,
+			"Failure! User does not have enough money\n\n" +
+			"User ID: " + username + "\n" +
+			"Stock Symbol: " + stockSymbol + "\n" +
+			"Amount to buy: " + centsToDollarsString(amountToBuyInCents) +
+			"\nCurrent funds: " + centsToDollarsString(user.CurrentMoney))
 
-		// newAmount := user.CurrentMoney + amountFormatted
+			errorEventParams := map[string]string {
+				"command": "BUY",
+				"stockSymbol": stockSymbol,
+				"errorMessage": "Insufficient funds",
+			}
+			logErrorEvent(errorEventParams, user)
 
-		user.CurrentMoney = 1211
-		db.conn.Save(&user)
+			return
+		}
+
+		quoteResponseMap := getQuoteFromServer(username, stockSymbol)
+
+		// create a transaction record
+		buyTransaction := buildBuyTransaction(user)
+		buyTransaction.StockSymbol = stockSymbol
+		buyTransaction.AmountInCents = amountToBuyInCents
+		buyTransaction.QuotedStockPrice = uint(stringMoneyToCents(quoteResponseMap["price"]))
+		db.conn.Create(&buyTransaction)
 
 		fmt.Fprintf(w,
-		"Success!\n\n" +
+		"Transaction created. Pending buy transaction:\n\n" +
 		"User ID: " + username + "\n" +
 		"Stock Symbol: " + stockSymbol + "\n" +
-		"Amount bought: " + string(buyAmount))
+		"Amount to buy: " + buyAmount +
+		"\nQuoted price: " + quoteResponseMap["price"])
 	}
+}
+
+// Save an ErrorEventLogItem
+func logErrorEvent(params map[string]string, user *User) {
+	errorEventLogItem := buildErrorEventLogItemStruct()
+	errorEventLogItem.Command = params["command"]
+	errorEventLogItem.Username = user.Username
+	errorEventLogItem.StockSymbol = params["stockSymbol"]
+	errorEventLogItem.Funds = centsToDollarsString(user.CurrentMoney)
+	errorEventLogItem.ErrorMessage = params["errorMessage"]
+
+	errorEventLogItem.SaveRecord()
 }
 
 func (handler *Handler) setBuyTrigger(w http.ResponseWriter, r *http.Request) {
