@@ -300,6 +300,47 @@ func (handler *Handler) setBuyAmount(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (handler *Handler) cancelSetBuy(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "POST" {
+		username := r.Form.Get("username")
+		stockSymbol := r.Form.Get("stockSymbol")
+
+		user, err := authUser(username)
+		if err != nil {
+			fmt.Fprintf(w, "Error: ", err)
+			return
+		}
+
+		t := Trigger{UserID: user.ID, StockSym: stockSymbol}
+		var trig Trigger;
+		db.conn.First(&trig, &t)
+
+		user.CurrentMoney = user.CurrentMoney + trig.Amount
+
+		// ======= START TRANSACTION =======
+		tx := db.conn.Begin()
+
+		if err := tx.Save(&user).Error; err != nil {
+			tx.Rollback()
+			fmt.Fprintf(w, "Error: ", err)
+			return
+		}
+
+		if err := tx.Delete(&trig).Error; err != nil {
+			tx.Rollback()
+			fmt.Fprintf(w, "Error: ", err)
+			return
+		}
+
+		tx.Commit()
+		// ======== END TRANSACTION ========
+	}
+}
+
+func (handler *Handler) setSellAmount(w http.ResponseWriter, r *http.Request) {
+	return
+}
+
 // Save a UserCommandLogItem for an ADD command
 func logAddCommand(user *User) {
 	commandLogItem := buildUserCommandLogItemStruct()

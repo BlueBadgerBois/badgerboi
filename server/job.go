@@ -25,6 +25,7 @@ func checkTriggers() {
 
 		quotePrice := stringMoneyToCents(responseMap["price"])
 		if trig.Type == "buy" && quotePrice < trig.PriceThreshold {
+
 			amntToBuy, leftover := convertMoneyToStock(trig.Amount, quotePrice)
 
 			stockHolding := StockHolding{
