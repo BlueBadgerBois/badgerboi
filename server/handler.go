@@ -199,7 +199,7 @@ func (handler *Handler) commitBuy(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		transactionToCommit, err := db.newestTransactionForUser(user)
+		transactionToCommit, err := db.newestPendingTransactionForUser(user)
 		if err != nil {
 			fmt.Fprintf(w, "Failure! " + err.Error())
 			errorEventParams := map[string]string {
@@ -213,11 +213,11 @@ func (handler *Handler) commitBuy(w http.ResponseWriter, r *http.Request) {
 		}
 
 		logCommitBuyCommand(transactionToCommit.StockSymbol, user)
-		currentTime := db.getCurrentTime()
 
-		timeDifference := currentTime.Sub(transactionToCommit.CreatedAt)
 
 		// later we need to make the job server just update the quote price
+		currentTime := db.getCurrentTime()
+		timeDifference := currentTime.Sub(transactionToCommit.CreatedAt)
 		if timeDifference.Seconds() > MAX_TRANSACTION_VALIDITY_SECS {
 			fmt.Fprintf(w, "Failure! Most recent buy transaction is more than 60 seconds old.")
 			errorEventParams := map[string]string {
@@ -275,12 +275,74 @@ func (handler *Handler) commitBuy(w http.ResponseWriter, r *http.Request) {
 		user.CurrentMoney -= moneyToWithDraw
 		tx.Save(&user)
 
+		transactionToCommit.State = "complete"
+		tx.Save(&transactionToCommit)
+
 		tx.Commit()
 
 		successMsg := "BUY committed.\n " +
 		"symbol: " + transactionToCommit.StockSymbol +
 		"\nnum bought: " + string(numStocksToBuy) +
-		"\nquoted price: " + centsToDollarsString(transactionToCommit.AmountInCents)
+		"\nquoted price: " + centsToDollarsString(transactionToCommit.QuotedStockPrice)
+		fmt.Fprintf(w, successMsg)
+	}
+}
+
+func (handler *Handler) cancelBuy(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "POST" {
+		r.ParseForm()
+		username := r.Form.Get("username")
+
+
+		user, err := db.userFromUsername(username)
+		if err != nil {
+			fmt.Fprintf(w, "Failure! user does not exist!\n\n")
+			errorEventParams := map[string]string {
+				"command": "COMMIT_BUY",
+				"stockSymbol": "",
+				"errorMessage": err.Error(),
+			}
+			logErrorEvent(errorEventParams, user)
+
+			return
+		}
+
+		transactionToCancel, err := db.newestPendingTransactionForUser(user)
+		if err != nil {
+			fmt.Fprintf(w, "Failure! " + err.Error())
+			errorEventParams := map[string]string {
+				"command": "CANCEL_BUY",
+				"stockSymbol": "",
+				"errorMessage": err.Error(),
+			}
+			logErrorEvent(errorEventParams, user)
+
+			return
+		}
+
+		logCancelBuyCommand(transactionToCancel.StockSymbol, user)
+
+		// later we need to make the job server just update the quote price
+		currentTime := db.getCurrentTime()
+		timeDifference := currentTime.Sub(transactionToCancel.CreatedAt)
+		if timeDifference.Seconds() > MAX_TRANSACTION_VALIDITY_SECS {
+			errMsg := "Failure! Most recent BUY transaction is more than 60 seconds old."
+			fmt.Fprintf(w, errMsg)
+			errorEventParams := map[string]string {
+				"command": "CANCEL_BUY",
+				"stockSymbol": transactionToCancel.StockSymbol,
+				"errorMessage": errMsg,
+			}
+			logErrorEvent(errorEventParams, user)
+
+			return
+		}
+
+		db.cancelTransaction(transactionToCancel)
+
+		successMsg := "BUY cancelled.\n " +
+		"symbol: " + transactionToCancel.StockSymbol +
+		"\nmoney that was to be committed: " + centsToDollarsString(transactionToCancel.AmountInCents)
 		fmt.Fprintf(w, successMsg)
 	}
 }
@@ -289,6 +351,17 @@ func (handler *Handler) commitBuy(w http.ResponseWriter, r *http.Request) {
 func logCommitBuyCommand(stockSymbol string, user *User) {
 	commandLogItem := buildUserCommandLogItemStruct()
 	commandLogItem.Command = "COMMIT_BUY"
+	commandLogItem.Username = user.Username
+	commandLogItem.StockSymbol = stockSymbol
+	commandLogItem.Funds = centsToDollarsString(user.CurrentMoney)
+
+	commandLogItem.SaveRecord()
+}
+
+// Save a UserCommandLogItem for a COMMIT_BUY command
+func logCancelBuyCommand(stockSymbol string, user *User) {
+	commandLogItem := buildUserCommandLogItemStruct()
+	commandLogItem.Command = "CANCEL_BUY"
 	commandLogItem.Username = user.Username
 	commandLogItem.StockSymbol = stockSymbol
 	commandLogItem.Funds = centsToDollarsString(user.CurrentMoney)

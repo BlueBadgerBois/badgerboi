@@ -10,7 +10,7 @@ type Transaction struct {
 	gorm.Model
 	UserID uint `gorm:"index"`// foreign key to users table.
 	Type string // buy/sell
-	State string // possible values: completed, pending, cancelled, expired
+	State string // possible values: complete, pending, cancelled
 	StockSymbol string // stock to buy/sell
 	AmountInCents uint // amount of the stock to buy/sell. change this to cents
 	QuotedStockPrice uint // Quoted price of stock in cents (valid until 60 seconds after created_at)
@@ -26,7 +26,12 @@ func buildBuyTransaction(user *User) Transaction {
 	return buyTransaction
 }
 
-func (db *DB) newestTransactionForUser(user *User) (*Transaction, error) {
+func (db *DB) cancelTransaction(transaction *Transaction) {
+	transaction.State = "cancelled"
+	db.conn.Save(transaction)
+}
+
+func (db *DB) newestPendingTransactionForUser(user *User) (*Transaction, error) {
 	transaction := Transaction{}
 
 	notFound := db.conn.
