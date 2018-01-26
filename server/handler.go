@@ -280,29 +280,15 @@ func (handler *Handler) setBuyAmount(w http.ResponseWriter, r *http.Request) {
 
 		amountToBuyInCents := stringMoneyToCents(buyAmount)
 		thresholdInCents := stringMoneyToCents(threshold)
-		quoteResponseMap := getQuoteFromServer(username, stockSymbol)
 
-		transactionErr, transactionID := createBuyTransaction(&user, stockSymbol, amountToBuyInCents, quoteResponseMap["price"])
-		if transactionErr != nil {
-			fmt.Fprintf(w, "Error: ", transactionErr)
-			return
-		}
-
-		/*
-		* We created the transaction, we also need to remove some money from the user
-		* In the requirements it says we should store this in a reserve account,
-		* but for now I was thinking just remove the money from the user,
-		* then give it back if the buy is cancelled
-		*/
+		// update user's money, this is now stored in the trigger
 		user.CurrentMoney = user.CurrentMoney - uint(amountToBuyInCents)
 		db.conn.Save(&user)
-		// =================== May want to remove it change above
 		
 		buyTrigger := buildBuyTrigger(&user)
 		buyTrigger.StockSym = stockSymbol
 		buyTrigger.Amount = uint(amountToBuyInCents)
 		buyTrigger.PriceThreshold = uint(thresholdInCents)
-		buyTrigger.TransactionID = transactionID
 		db.conn.Create(&buyTrigger)
 
 		fmt.Fprintf(w, 
@@ -403,6 +389,21 @@ func authUser(uname string) (User, error) {
 		return user, errors.New("User not found!")
 	}
 	return user, nil
+}
+
+/*
+* ConvertMoneyToStock:
+* Inputs: 
+*   - Amount of money you are spending
+*   - The price of the stock
+* Outputs: 
+*   - The number of units of stock you can buy 
+*   - The leftover money from the transaction
+*/
+func convertMoneyToStock(money uint, stockPrice uint) (uint, uint) {
+	amntToBuy := (money/stockPrice)
+	leftover := (money%stockPrice)
+	return amntToBuy,leftover
 }
 
 func centsToCentsString(cents uint) string {
