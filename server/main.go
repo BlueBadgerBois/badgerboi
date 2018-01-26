@@ -89,6 +89,7 @@ func runAsWebServer() {
 	http.HandleFunc("/summary", handler.summary)
 	http.HandleFunc("/commitBuy", handler.commitBuy)
 	http.HandleFunc("/setBuyAmount", handler.setBuyAmount)
+	http.HandleFunc("/dumplog", handler.dumplog)
 	http.ListenAndServe(":8082", nil)
 	// http.ListenAndServeTLS(":8082", "cert.pem", "key.pem", nil)
 }

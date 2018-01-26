@@ -30,6 +30,7 @@ var USER_COMMAND_TYPES = [...]string{
 // These will be derived when dumping the logs
 type LogItem struct {
 	gorm.Model
+	Username string
 	Data string // JSON containing the other attributes
 }
 
@@ -55,17 +56,17 @@ func buildUserCommandLogItemStruct() UserCommandLogItem {
 		Server: "someServer",
 		Filename: "inputFile", // this needs to be changed later to be overridden with an actual file name
 	}
-	return logItem
+		return logItem
 }
 
-func (logItem *UserCommandLogItem) SaveRecord() {
+func (logItem *UserCommandLogItem) SaveRecord(username string) {
 	jsonBytes, err := json.Marshal(logItem)
 
 	if err != nil { log.Fatal("Unable to convert struct %s to json", logItem) }
 
 	jsonString := bytesToString(jsonBytes)
 
-	db.saveLogItem(jsonString)
+	db.saveLogItem(username, jsonString)
 }
 
 type QuoteServerLogItem struct {
@@ -88,14 +89,14 @@ func buildQuoteServerLogItemStruct() QuoteServerLogItem {
 	return logItem
 }
 
-func (logItem *QuoteServerLogItem) SaveRecord() {
+func (logItem *QuoteServerLogItem) SaveRecord(username string) {
 	jsonBytes, err := json.Marshal(logItem)
 
 	if err != nil { log.Fatal("Unable to convert struct %s to json", logItem) }
 
 	jsonString := bytesToString(jsonBytes)
 
-	db.saveLogItem(jsonString)
+	db.saveLogItem(username, jsonString)
 }
 
 
@@ -109,6 +110,24 @@ type AccountTransactionLogItem struct {
 	Funds string // dollars
 }
 
+func buildAccountTransactionLogItemStruct() AccountTransactionLogItem {
+	logItem := AccountTransactionLogItem {
+		LogType: "AcountTransactionType",
+		Server: "someServer",
+	}
+	return logItem
+}
+
+func (logItem *AccountTransactionLogItem) SaveRecord(username string) {
+	jsonBytes, err := json.Marshal(logItem)
+
+	if err != nil { log.Fatal("Unable to convert struct %s to json", logItem) }
+
+	jsonString := bytesToString(jsonBytes)
+
+	db.saveLogItem(username, jsonString)
+}
+
 type SystemEventLogItem struct {
 	// System events can be current user commands, interserver communications,
 	// or the execution of previously set triggers
@@ -119,6 +138,24 @@ type SystemEventLogItem struct {
 	StockSymbol string
 	Filename string
 	Funds string // dollars
+}
+
+func buildSystemEventLogItemStruct() SystemEventLogItem {
+	logItem := SystemEventLogItem {
+		LogType: "SystemEventType",
+		Server: "someServer",
+	}
+	return logItem
+}
+
+func (logItem *SystemEventLogItem) SaveRecord(username string) {
+	jsonBytes, err := json.Marshal(logItem)
+
+	if err != nil { log.Fatal("Unable to convert struct %s to json", logItem) }
+
+	jsonString := bytesToString(jsonBytes)
+
+	db.saveLogItem(username, jsonString)
 }
 
 type ErrorEventLogItem struct {
@@ -143,14 +180,14 @@ func buildErrorEventLogItemStruct() ErrorEventLogItem {
 	return logItem
 }
 
-func (logItem *ErrorEventLogItem) SaveRecord() {
+func (logItem *ErrorEventLogItem) SaveRecord(username string) {
 	jsonBytes, err := json.Marshal(logItem)
 
 	if err != nil { log.Fatal("Unable to convert struct %s to json", logItem) }
 
 	jsonString := bytesToString(jsonBytes)
 
-	db.saveLogItem(jsonString)
+	db.saveLogItem(username, jsonString)
 }
 
 type DebugLogItem struct {
