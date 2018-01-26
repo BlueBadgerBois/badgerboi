@@ -181,6 +181,6 @@ func main (){
 	commandsByUser := divideCommandsByUser(commands)
 
 	for i := 0; i < len(commandsByUser); i++ {
-		sendCommands(commandsByUser[i])
+		go sendCommands(commandsByUser[i])
 	}
 }
