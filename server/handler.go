@@ -104,40 +104,47 @@ func (handler *Handler) buy(w http.ResponseWriter, r *http.Request) {
 
 		logBuyCommand(stockSymbol, user)
 
-		if !user.HasEnoughMoney(amountToBuyInCents) {
-			fmt.Fprintf(w,
-			"Failure! User does not have enough money\n\n" +
-			"User ID: " + username + "\n" +
-			"Stock Symbol: " + stockSymbol + "\n" +
-			"Amount to buy: " + centsToDollarsString(amountToBuyInCents) +
-			"\nCurrent funds: " + centsToDollarsString(user.CurrentMoney))
-
-			errorEventParams := map[string]string {
-				"command": "BUY",
-				"stockSymbol": stockSymbol,
-				"errorMessage": "Insufficient funds",
-			}
-			logErrorEvent(errorEventParams, user)
-
+		quoteResponseMap := getQuoteFromServer(username, stockSymbol)
+		err, _ := createBuyTransaction(user, stockSymbol, amountToBuyInCents, quoteResponseMap["price"])
+		
+		if err != nil {
+			fmt.Fprintf(w, "Error!", err)
 			return
 		}
 
-		quoteResponseMap := getQuoteFromServer(username, stockSymbol)
-
-		// create a transaction record
-		buyTransaction := buildBuyTransaction(user)
-		buyTransaction.StockSymbol = stockSymbol
-		buyTransaction.AmountInCents = amountToBuyInCents
-		buyTransaction.QuotedStockPrice = uint(stringMoneyToCents(quoteResponseMap["price"]))
-		db.conn.Create(&buyTransaction)
-
 		fmt.Fprintf(w,
-		"Transaction created. Pending buy transaction:\n\n" +
-		"User ID: " + username + "\n" +
-		"Stock Symbol: " + stockSymbol + "\n" +
-		"Amount to buy: " + buyAmount +
-		"\nQuoted price: " + quoteResponseMap["price"])
+			"Transaction created. Pending buy transaction:\n\n" +
+			"User ID: " + username + "\n" +
+			"Stock Symbol: " + stockSymbol + "\n" +
+			"Amount to buy: " + centsToDollarsString(amountToBuyInCents) +
+			"\nQuoted price: " + quoteResponseMap["price"])
 	}
+}
+
+func createBuyTransaction(user *User, stockSymbol string, amountToBuyInCents uint, quotePrice string) (error, uint) {
+	// create a transaction record
+	buyTransaction := buildBuyTransaction(user)
+	buyTransaction.StockSymbol = stockSymbol
+	buyTransaction.AmountInCents = amountToBuyInCents
+	buyTransaction.QuotedStockPrice = uint(stringMoneyToCents(quotePrice))
+	db.conn.Create(&buyTransaction)
+
+	if !user.HasEnoughMoney(amountToBuyInCents) {
+		errorEventParams := map[string]string {
+			"command": "BUY",
+			"stockSymbol": stockSymbol,
+			"errorMessage": "Insufficient funds",
+		}
+		logErrorEvent(errorEventParams, user)
+
+		return errors.New(
+			"Failure! User does not have enough money\n\n" +
+			"User ID: " + user.Username + "\n" +
+			"Stock Symbol: " + stockSymbol + "\n" +
+			"Amount to buy: " + centsToDollarsString(amountToBuyInCents) +
+			"\nCurrent funds: " + centsToDollarsString(user.CurrentMoney)), 0
+	}
+	return nil, buyTransaction.ID
 }
 
 // Save a UserCommandLogItem for a BUY command
@@ -240,7 +247,6 @@ func logCommitBuyCommand(stockSymbol string, user *User) {
 	commandLogItem.SaveRecord()
 }
 
-
 // Save an ErrorEventLogItem
 func logErrorEvent(params map[string]string, user *User) {
 	errorEventLogItem := buildErrorEventLogItemStruct()
@@ -253,34 +259,59 @@ func logErrorEvent(params map[string]string, user *User) {
 	errorEventLogItem.SaveRecord()
 }
 
-func (handler *Handler) setBuyTrigger(w http.ResponseWriter, r *http.Request) {
-  if r.Method == "POST" {
-    r.ParseForm()
-    username := r.Form.Get("username")
-    stockSymbol := r.Form.Get("stockSymbol")
-    buyAmount := r.Form.Get("buyAmount")
-    threshold := r.Form.Get("threshold")
+// we should probably use transactions for all these db operations
+// ex.
+// tx := db.conn.Begin()
+// tx.Find(), tx.FirstOrCreate(), etc.
+// if err { tx.Rollback() }
+func (handler *Handler) setBuyAmount(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "POST" {
+		r.ParseForm()
+		username := r.Form.Get("username")
+		stockSymbol := r.Form.Get("stockSymbol")
+		buyAmount := r.Form.Get("buyAmount")
+		threshold := r.Form.Get("threshold")
 
-    user, err := authUser(username)
-    if err != nil {
-      fmt.Fprintf(w, "Error: ", err)
-      return
-    }
+		user, err := authUser(username)
+		if err != nil {
+			fmt.Fprintf(w, "Error: ", err)
+			return
+		}
 
-    buyAmountFormatted, _ := strconv.Atoi(buyAmount)
-    thresholdFormatted, _ := strconv.Atoi(threshold)
+		amountToBuyInCents := stringMoneyToCents(buyAmount)
+		thresholdInCents := stringMoneyToCents(threshold)
+		quoteResponseMap := getQuoteFromServer(username, stockSymbol)
 
-    t := Trigger{
-      UserID: user.ID,
-      StockSym: stockSymbol,
-      BuyAmount: uint(buyAmountFormatted),
-      PriceThreshold: uint(thresholdFormatted),
-    }
+		transactionErr, transactionID := createBuyTransaction(&user, stockSymbol, amountToBuyInCents, quoteResponseMap["price"])
+		if transactionErr != nil {
+			fmt.Fprintf(w, "Error: ", transactionErr)
+			return
+		}
 
-    db.conn.Create(&t)
+		/*
+		* We created the transaction, we also need to remove some money from the user
+		* In the requirements it says we should store this in a reserve account,
+		* but for now I was thinking just remove the money from the user,
+		* then give it back if the buy is cancelled
+		*/
+		user.CurrentMoney = user.CurrentMoney - uint(amountToBuyInCents)
+		db.conn.Save(&user)
+		// =================== May want to remove it change above
+		
+		buyTrigger := buildBuyTrigger(&user)
+		buyTrigger.StockSym = stockSymbol
+		buyTrigger.Amount = uint(amountToBuyInCents)
+		buyTrigger.PriceThreshold = uint(thresholdInCents)
+		buyTrigger.TransactionID = transactionID
+		db.conn.Create(&buyTrigger)
 
-    log.Println(stockSymbol, buyAmount, threshold)
-  }
+		fmt.Fprintf(w, 
+			"Trigger was successfully created!\n\n" +
+			"Amount withdrawn: $" + centsToDollarsString(amountToBuyInCents) +
+			"\nThis will be held until...\n" +
+			"Stock: " + stockSymbol +
+			" reaches $" + centsToDollarsString(thresholdInCents))
+	}
 }
 
 // Save a UserCommandLogItem for an ADD command
@@ -361,8 +392,8 @@ func quoteResponseToMap(message string) map[string]string {
 }
 
 func stringMoneyToCents(amount string) (uint) { // this needs to be fixed to handle improper inputs (no decimal)
-	formattedAmount, _ := strconv.Atoi(strings.Replace(amount, ".", "", -1))
-	return uint(formattedAmount)
+	stringAmountCents, _ := strconv.Atoi(strings.Replace(amount, ".", "", -1))
+	return uint(stringAmountCents)
 }
 
 func authUser(uname string) (User, error) {
