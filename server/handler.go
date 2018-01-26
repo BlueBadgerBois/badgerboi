@@ -106,6 +106,22 @@ func (handler *Handler) buy(w http.ResponseWriter, r *http.Request) {
 		logBuyCommand(stockSymbol, user)
 
 		quoteResponseMap := getQuoteFromServer(username, stockSymbol)
+
+		quotedPriceInCents := stringMoneyToCents(quoteResponseMap["price"])
+
+		if !anyStocksCanBeBought(amountToBuyInCents, quotedPriceInCents) {
+			errMsg := "Error! The buy amount " + centsToDollarsString(amountToBuyInCents) +
+			" is not enough to buy even one stock at price " + centsToDollarsString(quotedPriceInCents)
+			fmt.Fprintf(w, errMsg)
+			errorEventParams := map[string]string {
+				"command": "BUY",
+				"stockSymbol": stockSymbol,
+				"errorMessage": errMsg,
+			}
+			logErrorEvent(errorEventParams, user)
+			return
+		}
+
 		err, _ := createBuyTransaction(user, stockSymbol, amountToBuyInCents, quoteResponseMap["price"])
 
 		if err != nil {
@@ -122,12 +138,17 @@ func (handler *Handler) buy(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func anyStocksCanBeBought(amountToBuyInCents uint, quotedPriceInCents uint) bool {
+	numStocksToBuy, _ := convertMoneyToStock(amountToBuyInCents, quotedPriceInCents)
+	return numStocksToBuy > 0
+}
+
 func createBuyTransaction(user *User, stockSymbol string, amountToBuyInCents uint, quotePrice string) (error, uint) {
 	// create a transaction record
 	buyTransaction := buildBuyTransaction(user)
 	buyTransaction.StockSymbol = stockSymbol
 	buyTransaction.AmountInCents = amountToBuyInCents
-	buyTransaction.QuotedStockPrice = uint(stringMoneyToCents(quotePrice))
+	buyTransaction.QuotedStockPrice = stringMoneyToCents(quotePrice)
 	db.conn.Create(&buyTransaction)
 
 	if !user.HasEnoughMoney(amountToBuyInCents) {
@@ -256,7 +277,11 @@ func (handler *Handler) commitBuy(w http.ResponseWriter, r *http.Request) {
 
 		tx.Commit()
 
-		fmt.Fprintf(w, "BUY committed.")
+		successMsg := "BUY committed.\n " +
+		"symbol: " + transactionToCommit.StockSymbol +
+		"\nnum bought: " + string(numStocksToBuy) +
+		"\nquoted price: " + centsToDollarsString(transactionToCommit.AmountInCents)
+		fmt.Fprintf(w, successMsg)
 	}
 }
 
@@ -442,7 +467,7 @@ func quoteResponseToMap(message string) map[string]string {
 	return outputMap
 }
 
-func stringMoneyToCents(amount string) (uint) { // this needs to be fixed to handle improper inputs (no decimal)
+func stringMoneyToCents(amount string) uint { // this needs to be fixed to handle improper inputs (no decimal)
 	stringAmountCents, _ := strconv.Atoi(strings.Replace(amount, ".", "", -1))
 	return uint(stringAmountCents)
 }
