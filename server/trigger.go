@@ -9,7 +9,7 @@ type Trigger struct {
   UserID uint `gorm:"index"`
   Type string
   StockSym string
-  Amount uint
+  Amount uint // Buy trigger: cents. Sell trigger: number of stocks
   PriceThreshold uint
 }
 

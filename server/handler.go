@@ -10,8 +10,9 @@ import (
 	"net/http"
 	"strings"
 	"strconv"
-	"time"
 )
+
+const MAX_TRANSACTION_VALIDITY_SECS = 60
 
 type Handler struct {}
 
@@ -32,9 +33,9 @@ func (handler *Handler) summary(w http.ResponseWriter, r *http.Request) {
 		logSummaryCommand(&user)
 
 		fmt.Fprintf(w,
-			"Summary:\n\n" +
-			"Username: " + username + "\n" +
-			"Money: " + strconv.Itoa(int(user.CurrentMoney)))
+		"Summary:\n\n" +
+		"Username: " + username + "\n" +
+		"Money: " + centsToDollarsString(user.CurrentMoney))
 	}
 }
 
@@ -106,18 +107,18 @@ func (handler *Handler) buy(w http.ResponseWriter, r *http.Request) {
 
 		quoteResponseMap := getQuoteFromServer(username, stockSymbol)
 		err, _ := createBuyTransaction(user, stockSymbol, amountToBuyInCents, quoteResponseMap["price"])
-		
+
 		if err != nil {
 			fmt.Fprintf(w, "Error!", err)
 			return
 		}
 
 		fmt.Fprintf(w,
-			"Transaction created. Pending buy transaction:\n\n" +
-			"User ID: " + username + "\n" +
-			"Stock Symbol: " + stockSymbol + "\n" +
-			"Amount to buy: " + centsToDollarsString(amountToBuyInCents) +
-			"\nQuoted price: " + quoteResponseMap["price"])
+		"Transaction created. Pending buy transaction:\n\n" +
+		"User ID: " + username + "\n" +
+		"Stock Symbol: " + stockSymbol + "\n" +
+		"Amount to buy: " + centsToDollarsString(amountToBuyInCents) +
+		"\nQuoted price: " + quoteResponseMap["price"])
 	}
 }
 
@@ -137,12 +138,12 @@ func createBuyTransaction(user *User, stockSymbol string, amountToBuyInCents uin
 		}
 		logErrorEvent(errorEventParams, user)
 
-		return errors.New(
-			"Failure! User does not have enough money\n\n" +
-			"User ID: " + user.Username + "\n" +
-			"Stock Symbol: " + stockSymbol + "\n" +
-			"Amount to buy: " + centsToDollarsString(amountToBuyInCents) +
-			"\nCurrent funds: " + centsToDollarsString(user.CurrentMoney)), 0
+		return errors.New("Failure! User does not have enough money\n\n" +
+		"User ID: " + user.Username + "\n" +
+		"Stock Symbol: " + stockSymbol + "\n" +
+		"Amount to buy: " + centsToDollarsString(amountToBuyInCents) +
+		"\nCurrent funds: " + centsToDollarsString(user.CurrentMoney)),
+		0
 	}
 	return nil, buyTransaction.ID
 }
@@ -190,49 +191,72 @@ func (handler *Handler) commitBuy(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-
-		// error unless transactionToCommit exists
-
-
-
 		logCommitBuyCommand(transactionToCommit.StockSymbol, user)
+		currentTime := db.getCurrentTime()
 
-		// check if the current time is more than 60s after the created_at time of the transaction
-		log.Println("Transaction created_at: ", transactionToCommit.CreatedAt)
-		currentTime := time.Now()
-		log.Println("Current time: ", currentTime)
+		timeDifference := currentTime.Sub(transactionToCommit.CreatedAt)
 
-		if !user.HasEnoughMoney(transactionToCommit.AmountInCents) {
-			fmt.Fprintf(w,
-			"Failure! User does not have enough money\n\n" +
-			"User ID: " + user.Username + "\n" +
-			"Stock Symbol: " + transactionToCommit.StockSymbol + "\n" +
-			"Amount to buy: " + centsToDollarsString(transactionToCommit.AmountInCents) +
-			"\nCurrent funds: " + centsToDollarsString(user.CurrentMoney))
-
+		// later we need to make the job server just update the quote price
+		if timeDifference.Seconds() > MAX_TRANSACTION_VALIDITY_SECS {
+			fmt.Fprintf(w, "Failure! Most recent buy transaction is more than 60 seconds old.")
 			errorEventParams := map[string]string {
 				"command": "COMMIT_BUY",
 				"stockSymbol": transactionToCommit.StockSymbol,
-				"errorMessage": "Insufficient funds",
+				"errorMessage": "Failure! Buy transaction is more than 60 seconds old.",
 			}
 			logErrorEvent(errorEventParams, user)
 
 			return
 		}
 
-		// // create a transaction record
-		// buyTransaction := buildBuyTransaction(user)
-		// buyTransaction.StockSymbol = stockSymbol
-		// buyTransaction.AmountInCents = amountToBuyInCents
-		// buyTransaction.QuotedStockPrice = uint(stringMoneyToCents(quoteResponseMap["price"]))
-		// db.conn.Create(&buyTransaction)
+		tx := db.conn.Begin()
+		tx.Where(&User{Username: user.Username}).First(&user) // reload user
 
-		fmt.Fprintf(w,
-		"Transaction created. Pending buy transaction:\n\n")
-		// "User ID: " + username + "\n" +
-		// "Stock Symbol: " + stockSymbol + "\n" +
-		// "Amount to buy: " + buyAmount +
-		// "\nQuoted price: " + quoteResponseMap["price"])
+		numStocksToBuy, leftOverCents := convertMoneyToStock(transactionToCommit.AmountInCents,
+		transactionToCommit.QuotedStockPrice)
+
+		moneyToWithDraw := transactionToCommit.AmountInCents - leftOverCents
+
+		if !user.HasEnoughMoney(moneyToWithDraw) {
+			tx.Rollback() // rollback immediately
+
+			errMsg := "Failure! User does not have enough money\n\n" +
+			"User ID: " + user.Username + "\n" +
+			"Stock Symbol: " + transactionToCommit.StockSymbol + "\n" +
+			"Number of stocks to buy: " + string(numStocksToBuy) +
+			"Cost to user: " + centsToDollarsString(moneyToWithDraw) +
+			"\nCurrent funds: " + centsToDollarsString(user.CurrentMoney)
+
+			errorEventParams := map[string]string {
+				"command": "COMMIT_BUY",
+				"stockSymbol": transactionToCommit.StockSymbol,
+				"errorMessage": "Insufficient funds",
+			}
+
+			fmt.Fprintf(w, errMsg)
+			logErrorEvent(errorEventParams, user)
+
+			return
+		}
+
+		// give user stocks
+		var stockHolding StockHolding
+		holdingQuery := StockHolding{
+			UserID: user.ID,
+			StockSymbol: transactionToCommit.StockSymbol,
+		}
+		tx.FirstOrCreate(&stockHolding, &holdingQuery)
+
+		stockHolding.Number += numStocksToBuy
+		tx.Save(&stockHolding)
+
+		// Subtract money from user's account
+		user.CurrentMoney -= moneyToWithDraw
+		tx.Save(&user)
+
+		tx.Commit()
+
+		fmt.Fprintf(w, "BUY committed.")
 	}
 }
 
@@ -284,7 +308,7 @@ func (handler *Handler) setBuyAmount(w http.ResponseWriter, r *http.Request) {
 		// update user's money, this is now stored in the trigger
 		user.CurrentMoney = user.CurrentMoney - uint(amountToBuyInCents)
 		db.conn.Save(&user)
-		
+
 		buyTrigger := buildBuyTrigger(&user)
 		buyTrigger.StockSym = stockSymbol
 		buyTrigger.Amount = uint(amountToBuyInCents)
@@ -292,11 +316,11 @@ func (handler *Handler) setBuyAmount(w http.ResponseWriter, r *http.Request) {
 		db.conn.Create(&buyTrigger)
 
 		fmt.Fprintf(w, 
-			"Trigger was successfully created!\n\n" +
-			"Amount withdrawn: $" + centsToDollarsString(amountToBuyInCents) +
-			"\nThis will be held until...\n" +
-			"Stock: " + stockSymbol +
-			" reaches $" + centsToDollarsString(thresholdInCents))
+		"Trigger was successfully created!\n\n" +
+		"Amount withdrawn: $" + centsToDollarsString(amountToBuyInCents) +
+		"\nThis will be held until...\n" +
+		"Stock: " + stockSymbol +
+		" reaches $" + centsToDollarsString(thresholdInCents))
 	}
 }
 
@@ -444,7 +468,7 @@ func authUser(uname string) (User, error) {
 func convertMoneyToStock(money uint, stockPrice uint) (uint, uint) {
 	amntToBuy := (money/stockPrice)
 	leftover := (money%stockPrice)
-	return amntToBuy,leftover
+	return amntToBuy, leftover
 }
 
 func centsToCentsString(cents uint) string {

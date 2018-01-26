@@ -2,13 +2,17 @@ package main
 
 import (
 	"log"
-
+	"time"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 )
 
 type DB struct {
 	conn *gorm.DB
+}
+
+type DBTime struct {
+	Now time.Time
 }
 
 func (db *DB) init() {
@@ -52,3 +56,10 @@ func (db *DB) saveLogItem(jsonData string) {
 	db.conn.NewRecord(logItem)
 	db.conn.Create(&logItem)
 }
+
+func (db *DB) getCurrentTime() time.Time {
+	currentTime := DBTime{}
+	db.conn.Raw("select now from now();").Scan(&currentTime)
+	return currentTime.Now
+}
+

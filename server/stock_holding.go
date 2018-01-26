@@ -4,10 +4,9 @@ import (
 	"github.com/jinzhu/gorm"
 )
 
-// If a transaction explires, create a new transaction record
 type StockHolding struct {
 	gorm.Model
 	UserID uint `gorm:"index"`// foreign key to users table.
-	StockSymbol string // stock to buy/sell
+	StockSymbol string // Stock represented by this holding
 	Number uint // Number of the stock held by the user
 }
