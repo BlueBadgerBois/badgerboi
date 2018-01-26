@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"github.com/jinzhu/gorm"
 )
 
@@ -18,6 +19,14 @@ func (db *DB) userFromUsernameOrCreate(username string) *User {
 	var user User
 	db.conn.FirstOrCreate(&user, &u)
 	return &user
+}
+
+func (db *DB) userFromUsername(username string) (*User, error) {
+	user := User{}
+	if db.conn.Where(&User{Username: username}).First(&user).RecordNotFound() {
+		return &user, errors.New("User " + username + " not found!")
+	}
+	return &user, nil
 }
 
 func (user *User) HasEnoughMoney(targetAmount uint) bool {

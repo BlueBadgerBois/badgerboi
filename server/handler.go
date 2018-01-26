@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"html/template"
 	"fmt"
 	"log"
@@ -9,7 +10,7 @@ import (
 	"net/http"
 	"strings"
 	"strconv"
-  "errors"
+	"time"
 )
 
 type Handler struct {}
@@ -130,7 +131,6 @@ func (handler *Handler) buy(w http.ResponseWriter, r *http.Request) {
 		buyTransaction.QuotedStockPrice = uint(stringMoneyToCents(quoteResponseMap["price"]))
 		db.conn.Create(&buyTransaction)
 
-
 		fmt.Fprintf(w,
 		"Transaction created. Pending buy transaction:\n\n" +
 		"User ID: " + username + "\n" +
@@ -140,7 +140,7 @@ func (handler *Handler) buy(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// Save a UserCommandLogItem for an ADD command
+// Save a UserCommandLogItem for a BUY command
 func logBuyCommand(stockSymbol string, user *User) {
 	commandLogItem := buildUserCommandLogItemStruct()
 	commandLogItem.Command = "BUY"
@@ -150,6 +150,96 @@ func logBuyCommand(stockSymbol string, user *User) {
 
 	commandLogItem.SaveRecord()
 }
+
+func (handler *Handler) commitBuy(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "POST" {
+		r.ParseForm()
+		username := r.Form.Get("username")
+
+
+		user, err := db.userFromUsername(username)
+		if err != nil {
+			fmt.Fprintf(w, "Failure! user does not exist!\n\n")
+			errorEventParams := map[string]string {
+				"command": "COMMIT_BUY",
+				"stockSymbol": "",
+				"errorMessage": err.Error(),
+			}
+			logErrorEvent(errorEventParams, user)
+
+			return
+		}
+
+		transactionToCommit, err := db.newestTransactionForUser(user)
+		if err != nil {
+			fmt.Fprintf(w, "Failure! " + err.Error())
+			errorEventParams := map[string]string {
+				"command": "COMMIT_BUY",
+				"stockSymbol": "",
+				"errorMessage": err.Error(),
+			}
+			logErrorEvent(errorEventParams, user)
+
+			return
+		}
+
+
+		// error unless transactionToCommit exists
+
+
+
+		logCommitBuyCommand(transactionToCommit.StockSymbol, user)
+
+		// check if the current time is more than 60s after the created_at time of the transaction
+		log.Println("Transaction created_at: ", transactionToCommit.CreatedAt)
+		currentTime := time.Now()
+		log.Println("Current time: ", currentTime)
+
+		if !user.HasEnoughMoney(transactionToCommit.AmountInCents) {
+			fmt.Fprintf(w,
+			"Failure! User does not have enough money\n\n" +
+			"User ID: " + user.Username + "\n" +
+			"Stock Symbol: " + transactionToCommit.StockSymbol + "\n" +
+			"Amount to buy: " + centsToDollarsString(transactionToCommit.AmountInCents) +
+			"\nCurrent funds: " + centsToDollarsString(user.CurrentMoney))
+
+			errorEventParams := map[string]string {
+				"command": "COMMIT_BUY",
+				"stockSymbol": transactionToCommit.StockSymbol,
+				"errorMessage": "Insufficient funds",
+			}
+			logErrorEvent(errorEventParams, user)
+
+			return
+		}
+
+		// // create a transaction record
+		// buyTransaction := buildBuyTransaction(user)
+		// buyTransaction.StockSymbol = stockSymbol
+		// buyTransaction.AmountInCents = amountToBuyInCents
+		// buyTransaction.QuotedStockPrice = uint(stringMoneyToCents(quoteResponseMap["price"]))
+		// db.conn.Create(&buyTransaction)
+
+		fmt.Fprintf(w,
+		"Transaction created. Pending buy transaction:\n\n")
+		// "User ID: " + username + "\n" +
+		// "Stock Symbol: " + stockSymbol + "\n" +
+		// "Amount to buy: " + buyAmount +
+		// "\nQuoted price: " + quoteResponseMap["price"])
+	}
+}
+
+// Save a UserCommandLogItem for a COMMIT_BUY command
+func logCommitBuyCommand(stockSymbol string, user *User) {
+	commandLogItem := buildUserCommandLogItemStruct()
+	commandLogItem.Command = "COMMIT_BUY"
+	commandLogItem.Username = user.Username
+	commandLogItem.StockSymbol = stockSymbol
+	commandLogItem.Funds = centsToDollarsString(user.CurrentMoney)
+
+	commandLogItem.SaveRecord()
+}
+
 
 // Save an ErrorEventLogItem
 func logErrorEvent(params map[string]string, user *User) {
@@ -270,19 +360,18 @@ func quoteResponseToMap(message string) map[string]string {
 	return outputMap
 }
 
-
 func stringMoneyToCents(amount string) (uint) { // this needs to be fixed to handle improper inputs (no decimal)
 	formattedAmount, _ := strconv.Atoi(strings.Replace(amount, ".", "", -1))
 	return uint(formattedAmount)
 }
 
 func authUser(uname string) (User, error) {
-  u := User{Username: uname}
-  var user User
+	u := User{Username: uname}
+	var user User
 	if db.conn.First(&user, &u).RecordNotFound() {
-    return user, errors.New("User not found!")
-  }
-  return user, nil
+		return user, errors.New("User not found!")
+	}
+	return user, nil
 }
 
 func centsToCentsString(cents uint) string {

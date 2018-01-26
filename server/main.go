@@ -45,7 +45,8 @@ func runAsWebServer() {
 	http.HandleFunc("/add", handler.add)
 	http.HandleFunc("/buy", handler.buy)
 	http.HandleFunc("/summary", handler.summary)
-  http.HandleFunc("/setBuyTrigger", handler.setBuyTrigger)
+	http.HandleFunc("/setBuyTrigger", handler.setBuyTrigger)
+	http.HandleFunc("/commitBuy", handler.commitBuy)
 	http.ListenAndServe(":8082", nil)
 	// http.ListenAndServeTLS(":8082", "cert.pem", "key.pem", nil)
 }

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"github.com/jinzhu/gorm"
 )
 
@@ -24,3 +25,29 @@ func buildBuyTransaction(user *User) Transaction {
 
 	return buyTransaction
 }
+
+// func (db *DB) userFromUsername(username string) (*User, error) {
+// 	user := User{}
+// 	if db.conn.Where(&User{Username: username}).First(&user).RecordNotFound() {
+// 		return &user, errors.New("User not found!")
+// 	}
+// 	return &user, nil
+// }
+func (db *DB) newestTransactionForUser(user *User) (*Transaction, error) {
+	transaction := Transaction{}
+
+	notFound := db.conn.
+	Order("created_at desc").
+	Where("user_id = ?", user.ID).
+	Where("state = ?", "pending").
+	Where("created_at > now() - interval '1 minute'"). // only select transactions that are less than a minute old
+	First(&transaction).
+	RecordNotFound()
+
+	if notFound {
+		return &transaction, errors.New("No pending transactions found for user " + user.Username)
+	}
+
+	return &transaction, nil
+}
+
