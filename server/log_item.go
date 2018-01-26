@@ -46,7 +46,7 @@ type UserCommandLogItem struct {
 	Username string
 	StockSymbol string // what to do for summary?
 	Filename string
-	Funds uint
+	Funds string // should be in dollars
 }
 
 func buildUserCommandLogItemStruct() UserCommandLogItem {
@@ -106,7 +106,7 @@ type AccountTransactionLogItem struct {
 	Server string
 	Action string
 	Username string
-	Funds uint
+	Funds string // dollars
 }
 
 type SystemEventLogItem struct {
@@ -118,7 +118,7 @@ type SystemEventLogItem struct {
 	Username string
 	StockSymbol string
 	Filename string
-	Funds uint
+	Funds string // dollars
 }
 
 type ErrorEventLogItem struct {
@@ -130,7 +130,7 @@ type ErrorEventLogItem struct {
 	Username string
 	StockSymbol string
 	Filename string
-	Funds uint
+	Funds string // dollars
 	ErrorMessage string
 }
 
@@ -143,7 +143,7 @@ type DebugLogItem struct {
 	Username string
 	StockSymbol string
 	Filename string
-	Funds uint
+	Funds string // dollars
 	DebugMessage string
 }
 

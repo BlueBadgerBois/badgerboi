@@ -37,15 +37,6 @@ func (handler *Handler) summary(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func logSummaryCommand(user *User) {
-	commandLogItem := buildUserCommandLogItemStruct()
-	commandLogItem.Command = "DISPLAY_SUMMARY"
-	commandLogItem.Username = user.Username
-	commandLogItem.StockSymbol = "" // No stock symbol for a summary
-	commandLogItem.Funds = user.CurrentMoney
-	commandLogItem.SaveRecord()
-}
-
 func (handler *Handler) add(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "POST" {
 		r.ParseForm()
@@ -61,24 +52,14 @@ func (handler *Handler) add(w http.ResponseWriter, r *http.Request) {
 		user.CurrentMoney = newAmount
 		db.conn.Save(&user)
 
+		logAddCommand(user)
+
 		fmt.Fprintf(w,
 		"Success!\n\n" +
 		"User ID: " + username + "\n" +
 		"Amount added in dollars: " + centsToDollarsString(amountInCents) +
 		"\nCents: " + strconv.Itoa(int(amountInCents)))
 	}
-}
-
-func centsToCentsString(cents uint) string {
-	return strconv.Itoa(int(cents))
-}
-
-func centsToDollarsString(cents uint) string {
-	// 2 is precision after decimal point to display
-	return strconv.FormatFloat(centsToDollars(cents), 'f', 2, 64)
-}
-func centsToDollars(cents uint) float64 {
-	return float64(cents) / 100
 }
 
 func (handler *Handler) index(w http.ResponseWriter, r *http.Request) {
@@ -107,64 +88,6 @@ func (handler *Handler) quote(w http.ResponseWriter, r *http.Request) {
 
 		fmt.Fprintf(w, "Success!\n\n Quote Server Response: %v", responseMap)
 	}
-}
-
-
-// Fetch a quote from the quote server and log it
-func getQuoteFromServer(username string, stockSymbol string) map[string]string {
-	conn, err := net.Dial("tcp", "quoteServer:3333")
-
-	if err != nil{
-		log.Println("error hitting quote server: ", err)
-	}
-
-	fmt.Fprintf(conn, username + ", " + stockSymbol)
-	message, _ := bufio.NewReader(conn).ReadString('\n')
-
-	responseMap := quoteResponseToMap(message)
-
-	logQuoteServer(responseMap)
-
-	return responseMap
-}
-
-// Save a QuoteServerLogItem
-func logQuoteServer(params map[string]string) {
-	quoteLogItem := buildQuoteServerLogItemStruct()
-	quoteLogItem.Price = params["price"]
-	quoteLogItem.StockSymbol = params["stockSymbol"]
-	quoteLogItem.Username = params["username"]
-	quoteLogItem.QuoteServerTime = params["quoteServerTime"]
-	quoteLogItem.Cryptokey = params["cryptokey"]
-
-	quoteLogItem.SaveRecord()
-}
-
-// Save a UserCommandLogItem for a QUOTE command
-func logQuoteCommand(params map[string]string, user *User) {
-	commandLogItem := buildUserCommandLogItemStruct()
-	commandLogItem.Command = "QUOTE"
-	commandLogItem.Username = params["username"]
-	commandLogItem.StockSymbol = params["stockSymbol"]
-	commandLogItem.Funds = user.CurrentMoney
-
-	commandLogItem.SaveRecord()
-}
-
-func quoteResponseToMap(message string) map[string]string {
-	splitMessage := strings.Split(message, ",")
-
-	log.Println("split message: ", splitMessage)
-
-	outputMap := map[string]string {
-		"price": strings.TrimSpace(splitMessage[0]),
-		"username": strings.TrimSpace(splitMessage[1]),
-		"stockSymbol": strings.TrimSpace(splitMessage[2]),
-		"quoteServerTime": strings.TrimSpace(splitMessage[3]),
-		"cryptokey": strings.TrimSpace(splitMessage[4]),
-	}
-
-	return outputMap
 }
 
 func (handler *Handler) buy(w http.ResponseWriter, r *http.Request) {
@@ -224,6 +147,84 @@ func (handler *Handler) setBuyTrigger(w http.ResponseWriter, r *http.Request) {
   }
 }
 
+// Save a UserCommandLogItem for an ADD command
+func logAddCommand(user *User) {
+	commandLogItem := buildUserCommandLogItemStruct()
+	commandLogItem.Command = "ADD"
+	commandLogItem.Username = user.Username
+	commandLogItem.StockSymbol = ""
+	commandLogItem.Funds = centsToDollarsString(user.CurrentMoney)
+
+	commandLogItem.SaveRecord()
+}
+
+func logSummaryCommand(user *User) {
+	commandLogItem := buildUserCommandLogItemStruct()
+	commandLogItem.Command = "DISPLAY_SUMMARY"
+	commandLogItem.Username = user.Username
+	commandLogItem.StockSymbol = "" // No stock symbol for a summary
+	commandLogItem.Funds = centsToDollarsString(user.CurrentMoney)
+	commandLogItem.SaveRecord()
+}
+
+// Fetch a quote from the quote server and log it
+func getQuoteFromServer(username string, stockSymbol string) map[string]string {
+	conn, err := net.Dial("tcp", "quoteServer:3333")
+
+	if err != nil{
+		log.Println("error hitting quote server: ", err)
+	}
+
+	fmt.Fprintf(conn, username + ", " + stockSymbol)
+	message, _ := bufio.NewReader(conn).ReadString('\n')
+
+	responseMap := quoteResponseToMap(message)
+
+	logQuoteServer(responseMap)
+
+	return responseMap
+}
+
+// Save a QuoteServerLogItem
+func logQuoteServer(params map[string]string) {
+	quoteLogItem := buildQuoteServerLogItemStruct()
+	quoteLogItem.Price = params["price"]
+	quoteLogItem.StockSymbol = params["stockSymbol"]
+	quoteLogItem.Username = params["username"]
+	quoteLogItem.QuoteServerTime = params["quoteServerTime"]
+	quoteLogItem.Cryptokey = params["cryptokey"]
+
+	quoteLogItem.SaveRecord()
+}
+
+// Save a UserCommandLogItem for a QUOTE command
+func logQuoteCommand(params map[string]string, user *User) {
+	commandLogItem := buildUserCommandLogItemStruct()
+	commandLogItem.Command = "QUOTE"
+	commandLogItem.Username = params["username"]
+	commandLogItem.StockSymbol = params["stockSymbol"]
+	commandLogItem.Funds = centsToDollarsString(user.CurrentMoney)
+
+	commandLogItem.SaveRecord()
+}
+
+func quoteResponseToMap(message string) map[string]string {
+	splitMessage := strings.Split(message, ",")
+
+	log.Println("split message: ", splitMessage)
+
+	outputMap := map[string]string {
+		"price": strings.TrimSpace(splitMessage[0]),
+		"username": strings.TrimSpace(splitMessage[1]),
+		"stockSymbol": strings.TrimSpace(splitMessage[2]),
+		"quoteServerTime": strings.TrimSpace(splitMessage[3]),
+		"cryptokey": strings.TrimSpace(splitMessage[4]),
+	}
+
+	return outputMap
+}
+
+
 func stringMoneyToCents(amount string) (uint) { // this needs to be fixed to handle improper inputs (no decimal)
 	formattedAmount, _ := strconv.Atoi(strings.Replace(amount, ".", "", -1))
 	return uint(formattedAmount)
@@ -236,4 +237,16 @@ func authUser(uname string) (User, error) {
     return user, errors.New("User not found!")
   }
   return user, nil
+}
+
+func centsToCentsString(cents uint) string {
+	return strconv.Itoa(int(cents))
+}
+
+func centsToDollarsString(cents uint) string {
+	// 2 is precision after decimal point to display
+	return strconv.FormatFloat(centsToDollars(cents), 'f', 2, 64)
+}
+func centsToDollars(cents uint) float64 {
+	return float64(cents) / 100
 }
