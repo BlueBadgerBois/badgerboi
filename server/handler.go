@@ -319,7 +319,6 @@ func (handler *Handler) setBuyAmount(w http.ResponseWriter, r *http.Request) {
 		username := r.Form.Get("username")
 		stockSymbol := r.Form.Get("stockSymbol")
 		buyAmount := r.Form.Get("buyAmount")
-		threshold := r.Form.Get("threshold")
 
 		user, err := authUser(username)
 		if err != nil {
@@ -328,7 +327,6 @@ func (handler *Handler) setBuyAmount(w http.ResponseWriter, r *http.Request) {
 		}
 
 		amountToBuyInCents := stringMoneyToCents(buyAmount)
-		thresholdInCents := stringMoneyToCents(threshold)
 
 		// update user's money, this is now stored in the trigger
 		user.CurrentMoney = user.CurrentMoney - uint(amountToBuyInCents)
@@ -337,20 +335,19 @@ func (handler *Handler) setBuyAmount(w http.ResponseWriter, r *http.Request) {
 		buyTrigger := buildBuyTrigger(&user)
 		buyTrigger.StockSym = stockSymbol
 		buyTrigger.Amount = uint(amountToBuyInCents)
-		buyTrigger.PriceThreshold = uint(thresholdInCents)
+		buyTrigger.PriceThreshold = 0
 		db.conn.Create(&buyTrigger)
 
 		fmt.Fprintf(w, 
-		"Trigger was successfully created!\n\n" +
-		"Amount withdrawn: $" + centsToDollarsString(amountToBuyInCents) +
-		"\nThis will be held until...\n" +
-		"Stock: " + stockSymbol +
-		" reaches $" + centsToDollarsString(thresholdInCents))
+			"Buy action was successfully created!\n\n" +
+			"Amount withdrawn: $" + centsToDollarsString(amountToBuyInCents) +
+			"\n\nNow you should set a trigger...")
 	}
 }
 
 func (handler *Handler) cancelSetBuy(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "POST" {
+		r.ParseForm()
 		username := r.Form.Get("username")
 		stockSymbol := r.Form.Get("stockSymbol")
 
@@ -386,7 +383,40 @@ func (handler *Handler) cancelSetBuy(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (handler *Handler) setBuyTrigger(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "POST" {
+		r.ParseForm()
+		username := r.Form.Get("username")
+		stockSymbol := r.Form.Get("stockSymbol")
+		threshold := r.Form.Get("threshold")
+
+		user, err := authUser(username)
+		if err != nil {
+			fmt.Fprintf(w, "Error: ", err)
+			return
+		}
+
+		thresholdInCents := stringMoneyToCents(threshold);
+
+		t := Trigger {UserID: user.ID, StockSym: stockSymbol}
+		var trig Trigger
+		db.conn.First(&trig, &t)
+
+		trig.PriceThreshold = thresholdInCents
+
+		db.conn.Save(&trig)
+	}
+}
+
 func (handler *Handler) setSellAmount(w http.ResponseWriter, r *http.Request) {
+	return
+}
+
+func (handler *Handler) cancelSetSell(w http.ResponseWriter, r *http.Request) {
+	return
+}
+
+func (handler *Handler) setSellTrigger(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
