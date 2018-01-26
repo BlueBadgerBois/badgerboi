@@ -7,7 +7,6 @@ import (
 type Trigger struct {
   gorm.Model
   UserID uint `gorm:"index"`
-  TransactionID uint `gorm:"ForeignKey"`
   Type string
   StockSym string
   Amount uint
