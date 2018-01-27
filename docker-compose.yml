@@ -50,4 +50,8 @@ services:
       default:
         aliases:
           - quoteServer
-
+  workload:
+    container_name: workload
+    build: ./workloadGen
+    volumes:
+      - ./workloadGen:/go/src/app

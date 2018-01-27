@@ -4,14 +4,15 @@ package main
 
 import (
 	"io/ioutil"
+	"log"
 	"os"
 	"strings"
 	"net/http"
 	"net/url"
-  "log"
+	"log"
 )
 
-const serverUrl = "http://127.0.0.1:8082"
+const serverUrl = "web:8082"
 
 /*
 * Returns a two dimentional array, outer array contains the users,
@@ -19,7 +20,7 @@ const serverUrl = "http://127.0.0.1:8082"
 * in the remaining indexes.
 */
 func divideCommandsByUser (commands []string) [][]string {
-  log.Println("In divideCommandsByUser")
+	log.Println("In divideCommandsByUser")
 	commandsByUser := make([][]string, 0)
 	var command []string
 	foundDumplog := false
@@ -68,7 +69,7 @@ func divideCommandsByUser (commands []string) [][]string {
 *	Sends the commands in order to the server
 */
 func sendCommands (commands []string) {
-  log.Println("IN Send Commands")
+	log.Println("IN Send Commands")
 	var command []string
 
 	for i := 1; i < len(commands); i++ {
@@ -281,7 +282,7 @@ func sendCommand (command []string) {
 * Handles sending a request and printing the response
 */
 func sendRequest (req *http.Request) {
-  log.Println("In send request")
+	log.Println("In send request")
 	log.Println("Sending request...")
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	client := &http.Client{}
@@ -297,7 +298,7 @@ func sendRequest (req *http.Request) {
 }
 
 func main (){
-  log.Println("Hello")
+	log.Println("Hello")
 	if len(os.Args) < 2 {
 		log.Println("Filename not provided")
 		return
