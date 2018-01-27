@@ -6,6 +6,7 @@ import (
 	"html/template"
 	"fmt"
 	"log"
+	"math"
 	"net"
 	"net/http"
 	"strings"
@@ -241,7 +242,6 @@ func (handler *Handler) setBuyTrigger(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// TODO: What if this already exists?
 func (handler *Handler) setSellAmount(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "POST" {
 		r.ParseForm()
@@ -375,17 +375,10 @@ func (handler *Handler) setSellTrigger(w http.ResponseWriter, r *http.Request) {
 		var trig Trigger
 		db.conn.First(&trig, &t)
 
-		// 1. get the current quoted price
-		quoteResponse := getQuoteFromServer(username, stockSymbol)
-		quotePrice := stringMoneyToCents(quoteResponse["price"])
+		// how much stock do we need to hit trigger amount?
+		numStocks := uint(math.Ceil(float64(trig.Amount)/float64(thresholdInCents)))
 
-		// 2. get the amount on the trigger
-		amntToMake := trig.Amount
-
-		// 3. that equals this many stocks
-		numStocks, _ := convertMoneyToStock(amntToMake, quotePrice)
-
-		// 4. get the stock holding
+		// get the stock holding
 		s := StockHolding{
 			UserID: user.ID,
 			StockSymbol: stockSymbol,
@@ -393,11 +386,14 @@ func (handler *Handler) setSellTrigger(w http.ResponseWriter, r *http.Request) {
 		var stockHolding StockHolding
 		db.conn.First(&stockHolding, &s)
 
-		// 5. update the stock holding
-		difference := int(numStocks) - int(trig.NumStocks)
+		difference := int(stockHolding.Number)-int(numStocks)
 		if difference < 0 {
-			stockHolding.Number += uint(difference*(-1))
+			// add back some stock
+			stockHolding.Number += uint(int(difference)*(-1))
 		} else {
+			if !stockHolding.sufficient(uint(difference)) {
+				return
+			}
 			stockHolding.Number -= uint(difference)
 		}
 
