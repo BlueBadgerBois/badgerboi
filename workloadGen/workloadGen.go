@@ -3,12 +3,12 @@
 package main
 
 import (
-	"fmt"
 	"io/ioutil"
 	"os"
 	"strings"
 	"net/http"
 	"net/url"
+  "log"
 )
 
 const serverUrl = "http://127.0.0.1:8082"
@@ -19,6 +19,7 @@ const serverUrl = "http://127.0.0.1:8082"
 * in the remaining indexes.
 */
 func divideCommandsByUser (commands []string) [][]string {
+  log.Println("In divideCommandsByUser")
 	commandsByUser := make([][]string, 0)
 	var command []string
 	foundDumplog := false
@@ -67,12 +68,13 @@ func divideCommandsByUser (commands []string) [][]string {
 *	Sends the commands in order to the server
 */
 func sendCommands (commands []string) {
+  log.Println("IN Send Commands")
 	var command []string
 
 	for i := 1; i < len(commands); i++ {
 		command = strings.Split(commands[i], ",")
-		fmt.Println("----------------------------------------------")
-		fmt.Println(command)
+		log.Println("----------------------------------------------")
+		log.Println(command)
 
 		if command[0] == "ADD" {
 			data := url.Values{}
@@ -80,8 +82,8 @@ func sendCommands (commands []string) {
 			data.Add("amount", command[2])
 			req, err := http.NewRequest("POST", serverUrl + "/add", strings.NewReader(data.Encode()))
 			if err != nil {
-				fmt.Println("Error making a new request:")
-				fmt.Println(err)
+				log.Println("Error making a new request:")
+				log.Println(err)
 			}
 			sendRequest(req)
 		}
@@ -92,8 +94,8 @@ func sendCommands (commands []string) {
 			data.Add("stocksym", command[2])
 			req, err := http.NewRequest("POST", serverUrl + "/quote", strings.NewReader(data.Encode()))
 			if err != nil {
-				fmt.Println("Error making a new request:")
-				fmt.Println(err)
+				log.Println("Error making a new request:")
+				log.Println(err)
 			}
 			sendRequest(req)
 		}
@@ -103,8 +105,8 @@ func sendCommands (commands []string) {
 			data.Set("username", command[1])
 			req, err := http.NewRequest("POST", serverUrl + "/summary", strings.NewReader(data.Encode()))
 			if err != nil {
-				fmt.Println("Error making a new request:")
-				fmt.Println(err)
+				log.Println("Error making a new request:")
+				log.Println(err)
 			}
 			sendRequest(req)
 		}
@@ -116,8 +118,8 @@ func sendCommands (commands []string) {
 			data.Add("buyAmount", command[3])
 			req, err := http.NewRequest("POST", serverUrl + "/buy", strings.NewReader(data.Encode()))
 			if err != nil {
-				fmt.Println("Error making a new request:")
-				fmt.Println(err)
+				log.Println("Error making a new request:")
+				log.Println(err)
 			}
 			sendRequest(req)
 		}
@@ -130,20 +132,20 @@ func sendCommands (commands []string) {
 			data.Add("threshold", command[4])
 			req, err := http.NewRequest("POST", serverUrl + "/buy", strings.NewReader(data.Encode()))
 			if err != nil {
-				fmt.Println("Error making a new request:")
-				fmt.Println(err)
+				log.Println("Error making a new request:")
+				log.Println(err)
 			}
 			sendRequest(req)
 		}
 
 		if command[0] == "DUMPLOG" {
 			data := url.Values{}
-			data.Set("username", command[1])
-			data.Add("outfile", command[2])
+			// data.Set("username", command[1])
+			data.Add("outfile", command[1])
 			req, err := http.NewRequest("POST", serverUrl + "/dumplog", strings.NewReader(data.Encode()))
 			if err != nil {
-				fmt.Println("Error making a new request:")
-				fmt.Println(err)
+				log.Println("Error making a new request:")
+				log.Println(err)
 			}
 			sendRequest(req)
 		}
@@ -154,29 +156,31 @@ func sendCommands (commands []string) {
 * Handles sending a request and printing the response
 */
 func sendRequest (req *http.Request) {
-	fmt.Println("Sending request...")
+  log.Println("In send request")
+	log.Println("Sending request...")
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		fmt.Println("Error sending http request:")
+		log.Println("Error sending http request:")
 		panic(err)
 	}
 	defer resp.Body.Close()
-	fmt.Println("Response Status:", resp.Status)
+	log.Println("Response Status:", resp.Status)
 	body, _ := ioutil.ReadAll(resp.Body)
-	fmt.Println("Response Body:", string(body))
+	log.Println("Response Body:", string(body))
 }
 
 func main (){
+  log.Println("Hello")
 	if len(os.Args) < 2 {
-		fmt.Println("Filename not provided")
+		log.Println("Filename not provided")
 		return
 	}
 
 	fileData, err := ioutil.ReadFile(os.Args[1])
 	if err != nil {
-		fmt.Println("Error reading file ", os.Args[1])
+		log.Println("Error reading file ", os.Args[1])
 		panic(err)
 	}
 
@@ -193,6 +197,6 @@ func main (){
 	commandsByUser := divideCommandsByUser(commands)
 
 	for i := 0; i < len(commandsByUser); i++ {
-		go sendCommands(commandsByUser[i])
+		sendCommands(commandsByUser[i])
 	}
 }
