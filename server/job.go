@@ -31,17 +31,20 @@ func checkTriggers() {
 			stockHolding := StockHolding{
 				UserID: user.ID,
 				StockSymbol: trig.StockSym,
-				Number: amntToBuy,
 			}
+				//Number: amntToBuy,
 			user.CurrentMoney = user.CurrentMoney + leftover
 
 			// ======== START TRANSACTION ========
 			tx := db.conn.Begin()
 
-			if err := tx.Create(&stockHolding).Error; err != nil {
+			if err := tx.FirstOrCreate(&stockHolding).Error; err != nil {
 				tx.Rollback()
 				continue
 			}
+
+			stockHolding.Number += amntToBuy
+			tx.Save(stockHolding)
 
 			if err := tx.Save(&user).Error; err != nil {
 				tx.Rollback()
@@ -57,8 +60,33 @@ func checkTriggers() {
 			tx.Commit()
 			// ========= END TRANSACTION =========
 
-		} else if trig.Type == "sell" && quotePrice > trig.PriceThreshold {
+		} else if trig.Type == "sell" && 
+				quotePrice > trig.PriceThreshold &&
+				trig.PriceThreshold != 0 {
 			log.Println("We are above the threshold so we can sell!")
+			// ex. quoted price is $750
+			// we are selling $500
+
+			// we need to update user's money
+			user.CurrentMoney += (trig.NumStocks * quotePrice)
+
+			// ======== START TRANSACTION ========
+			tx := db.conn.Begin()
+
+			if err := tx.Save(&user).Error; err != nil {
+				tx.Rollback()
+				continue
+			}
+
+			if err := tx.Delete(&trig).Error; err != nil {
+				tx.Rollback()
+				continue
+			}
+
+			tx.Commit()
+			// ========= END TRANSACTION =========
+
+
 		} else {
 			log.Println("trigger not executing")
 		}

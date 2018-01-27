@@ -34,7 +34,7 @@ func getStockResponse(buf []byte) string {
     os.Exit(1)
   }
 
-  var quoteRes string = strconv.Itoa(rand.Intn(999)) + "." + strconv.Itoa(rand.Intn(99)) +  //Quote
+  var quoteRes string = strconv.Itoa(rand.Intn(999)) + "." + strconv.Itoa(10 + rand.Intn(89)) +  //Quote
     ", " + sp[0] +  //Symbol
     ", " + sp[1] +  //UserID
     ", " + time.Now().String() + //Timestamp

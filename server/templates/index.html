@@ -45,6 +45,8 @@
     <input type="submit" />
   </fieldset>
 </form>
+
+<!-- Buy Triggers -->
 <form action="setBuyAmount" method="post">
   <fieldset>
     <legend>Set Buy Amount</legend>
@@ -65,6 +67,34 @@
 <form action="setBuyTrigger" method="post">
   <fieldset>
     <legend>Set Buy Trigger</legend>
+    <input type="text" name="username" placeholder="username" />
+    <input type="text" name="stockSymbol" placeholder="symbol" />
+    <input type="text" name="threshold" placeholder="threshold $" />
+    <input type="submit" />
+  </fieldset>
+</form>
+
+<!-- Sell Triggers -->
+<form action="setSellAmount" method="post">
+  <fieldset>
+    <legend>Set Sell Amount</legend>
+    <input type="text" name="username" placeholder="username" />
+    <input type="text" name="stockSymbol" placeholder="symbol" />
+    <input type="text" name="sellAmount" placeholder="amount to sell" />
+    <input type="submit" />
+  </fieldset>
+</form>
+<form action="cancelSetSell" method="post">
+  <fieldset>
+    <legend>Cancel Set Sell</legend>
+    <input type="text" name="username" placeholder="username" />
+    <input type="text" name="stockSymbol" placeholder="symbol" />
+    <input type="submit" />
+  </fieldset>
+</form>
+<form action="setSellTrigger" method="post">
+  <fieldset>
+    <legend>Set Sell Trigger</legend>
     <input type="text" name="username" placeholder="username" />
     <input type="text" name="stockSymbol" placeholder="symbol" />
     <input type="text" name="threshold" placeholder="threshold $" />

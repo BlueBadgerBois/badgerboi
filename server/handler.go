@@ -381,11 +381,10 @@ func logErrorEvent(params map[string]string, user *User) {
 	errorEventLogItem.SaveRecord()
 }
 
-// we should probably use transactions for all these db operations
-// ex.
-// tx := db.conn.Begin()
-// tx.Find(), tx.FirstOrCreate(), etc.
-// if err { tx.Rollback() }
+// TODO: What if this already exists?
+// We want to update the buy amount, but we only want to
+// take away the different of the money from their account
+// or add some back if they decide to buy a smaller amount
 func (handler *Handler) setBuyAmount(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "POST" {
 		r.ParseForm()
@@ -396,20 +395,52 @@ func (handler *Handler) setBuyAmount(w http.ResponseWriter, r *http.Request) {
 		user, err := authUser(username)
 		if err != nil {
 			fmt.Fprintf(w, "Error: ", err)
+			errorEventParams := map[string]string {
+				"command": "SET_BUY_AMOUNT",
+				"stockSymbol": stockSymbol,
+				"errorMessage": err.Error(),
+			}
+			logErrorEvent(errorEventParams, &user)
 			return
 		}
 
 		amountToBuyInCents := stringMoneyToCents(buyAmount)
 
+		if !user.HasEnoughMoney(amountToBuyInCents) {
+			fmt.Fprintf(w, "Insufficient funds")
+			errorEventParams := map[string]string {
+				"command": "SET_BUY_AMOUNT",
+				"stockSymbol": stockSymbol,
+				"buyAmount" : buyAmount,
+				"errorMessage": "Insufficient funds",
+			}
+			logErrorEvent(errorEventParams, &user)
+			return
+		}
+
 		// update user's money, this is now stored in the trigger
 		user.CurrentMoney = user.CurrentMoney - uint(amountToBuyInCents)
-		db.conn.Save(&user)
-
+		
 		buyTrigger := buildBuyTrigger(&user)
 		buyTrigger.StockSym = stockSymbol
 		buyTrigger.Amount = uint(amountToBuyInCents)
 		buyTrigger.PriceThreshold = 0
-		db.conn.Create(&buyTrigger)
+
+		// ====== START TRANSACTION ======
+		tx := db.conn.Begin()
+
+		if err := tx.Save(&user).Error; err != nil {
+			tx.Rollback()
+			return
+		}
+
+		if err := tx.Create(&buyTrigger).Error; err != nil {
+			tx.Rollback()
+			return
+		}
+
+		tx.Commit()
+		// ======= END TRANSACTION =======
 
 		fmt.Fprintf(w, 
 			"Buy action was successfully created!\n\n" +
@@ -418,6 +449,7 @@ func (handler *Handler) setBuyAmount(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// What if this doesnt exist?
 func (handler *Handler) cancelSetBuy(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "POST" {
 		r.ParseForm()
@@ -471,7 +503,11 @@ func (handler *Handler) setBuyTrigger(w http.ResponseWriter, r *http.Request) {
 
 		thresholdInCents := stringMoneyToCents(threshold);
 
-		t := Trigger {UserID: user.ID, StockSym: stockSymbol}
+		t := Trigger {
+			UserID: user.ID,
+			StockSym: stockSymbol,
+			Type: "buy",
+		}
 		var trig Trigger
 		db.conn.First(&trig, &t)
 
@@ -481,16 +517,170 @@ func (handler *Handler) setBuyTrigger(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// TODO: What if this already exists?
 func (handler *Handler) setSellAmount(w http.ResponseWriter, r *http.Request) {
-	return
+	if r.Method == "POST" {
+		r.ParseForm()
+		username := r.Form.Get("username")
+		stockSymbol := r.Form.Get("stockSymbol")
+		sellAmount := r.Form.Get("sellAmount")
+
+		user, err := authUser(username)
+		if err != nil {
+			errorEventParams := map[string]string {
+				"command": "SET_SELL_AMOUNT",
+				"stockSymbol": stockSymbol,
+				"errorMessage": err.Error(),
+			}
+			logErrorEvent(errorEventParams, &user)
+			fmt.Fprintf(w, "Error: ", err)
+			return
+		}
+
+		// get stockHolding for this stock from user
+		s := StockHolding{
+			UserID: user.ID,
+			StockSymbol: stockSymbol,
+		}
+		var stockHolding StockHolding
+
+		// check that user has the stock holding...
+		if db.conn.First(&stockHolding, &s).RecordNotFound() {
+			fmt.Fprintf(w,
+				"Stock holding not found...")
+			return
+		}
+
+		// they want to make at least this much money
+		amountToSell := stringMoneyToCents(sellAmount)
+
+		// get the current quoted price
+		quoteResponse := getQuoteFromServer(username, stockSymbol)
+		quotePrice := stringMoneyToCents(quoteResponse["price"])
+
+		numStocks, _ := convertMoneyToStock(amountToSell, quotePrice)
+
+		if stockHolding.Number < numStocks {
+			fmt.Fprintf(w,
+				"Insufficient stock at the current quoted price")
+			return
+		}
+
+		sellTrigger := buildSellTrigger(&user)
+		sellTrigger.StockSym = stockSymbol
+		sellTrigger.Amount = amountToSell
+		sellTrigger.NumStocks = 0 // don't set numStocks at this point
+		sellTrigger.PriceThreshold = 0
+		db.conn.Create(&sellTrigger)
+
+		fmt.Fprintf(w, 
+			"Sell action was successfully created!\n\n" +
+			"Amount to sell: " + strconv.Itoa(int(amountToSell)) +
+			"\n\nNow you should set a sell trigger...")
+	}
 }
 
+// TODO: What if this doesn't exist?
 func (handler *Handler) cancelSetSell(w http.ResponseWriter, r *http.Request) {
-	return
+	if r.Method == "POST" {
+		r.ParseForm()
+		username := r.Form.Get("username")
+		stockSymbol := r.Form.Get("stockSymbol")
+
+		user, err := authUser(username)
+		if err != nil {
+			fmt.Fprintf(w, "Error: ", err)
+			return
+		}
+
+		t := Trigger{UserID: user.ID, StockSym: stockSymbol}
+		var trig Trigger
+		db.conn.First(&trig, &t)
+
+		// find the stock holding associated with this
+		s := StockHolding{
+			UserID: user.ID,
+			StockSymbol: stockSymbol,
+		}
+		var stockHolding StockHolding
+		db.conn.First(&stockHolding, &s)
+
+		// return the number of stocks we witheld
+		stockHolding.Number += trig.NumStocks
+
+		// ======= START TRANSACTION =======
+		tx := db.conn.Begin()
+
+		if err := tx.Save(&stockHolding).Error; err != nil {
+			tx.Rollback()
+			fmt.Fprintf(w, "Error: ", err)
+			return
+		}
+
+		if err := tx.Delete(&trig).Error; err != nil {
+			tx.Rollback()
+			fmt.Fprintf(w, "Error: ", err)
+			return
+		}
+
+		tx.Commit()
+		// ======== END TRANSACTION ========
+	}
 }
 
+// TODO: IF the trigger already exists and we're just updating the value,
+// then we need to make sure we don't take more stocks from the user..
+// need to think about how to do this properly
 func (handler *Handler) setSellTrigger(w http.ResponseWriter, r *http.Request) {
-	return
+	if r.Method == "POST" {
+		r.ParseForm()
+		username := r.Form.Get("username")
+		stockSymbol := r.Form.Get("stockSymbol")
+		threshold := r.Form.Get("threshold")
+
+		user, err := authUser(username)
+		if err != nil {
+			fmt.Fprintf(w, "Error: ", err)
+			return
+		}
+
+		thresholdInCents := stringMoneyToCents(threshold);
+
+		t := Trigger {
+			UserID: user.ID,
+			StockSym: stockSymbol,
+			Type: "sell",
+		}
+		var trig Trigger
+		db.conn.First(&trig, &t)
+
+		// 1. get the current quoted price
+		quoteResponse := getQuoteFromServer(username, stockSymbol)
+		quotePrice := stringMoneyToCents(quoteResponse["price"])
+
+		// 2. get the amount on the trigger
+		amntToMake := trig.Amount
+
+		// 3. that equals this many stocks
+		numStocks, _ := convertMoneyToStock(amntToMake, quotePrice)
+
+		// 4. get the stock holding
+		s := StockHolding{
+			UserID: user.ID,
+			StockSymbol: stockSymbol,
+		}
+		var stockHolding StockHolding
+		db.conn.First(&stockHolding, &s)
+
+		// 5. Remove the stocks that equal the current quoted price for the trig
+		stockHolding.Number -= numStocks
+		db.conn.Save(&stockHolding)
+
+		// 6. Update the trigger to hold the number of stocks and set the threshold
+		trig.PriceThreshold = thresholdInCents
+		trig.NumStocks = numStocks
+		db.conn.Save(&trig)
+	}
 }
 
 // Save a UserCommandLogItem for an ADD command
@@ -594,9 +784,9 @@ func authUser(uname string) (User, error) {
 *   - The leftover money from the transaction
 */
 func convertMoneyToStock(money uint, stockPrice uint) (uint, uint) {
-	amntToBuy := (money/stockPrice)
+	amnt := (money/stockPrice)
 	leftover := (money%stockPrice)
-	return amntToBuy, leftover
+	return amnt, leftover
 }
 
 func centsToCentsString(cents uint) string {
