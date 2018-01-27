@@ -6,7 +6,7 @@ import (
 )
 
 func runJobServer() {
-	tickChan := time.NewTicker(5*time.Second).C
+	tickChan := time.NewTicker(60*time.Second).C
 	for {
 		<- tickChan
 		log.Println("Checking all triggers")
