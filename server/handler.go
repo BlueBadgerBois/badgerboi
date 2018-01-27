@@ -92,10 +92,6 @@ func (handler *Handler) quote(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// TODO: What if this already exists?
-// We want to update the buy amount, but we only want to
-// take away the different of the money from their account
-// or add some back if they decide to buy a smaller amount
 func (handler *Handler) setBuyAmount(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "POST" {
 		r.ParseForm()
@@ -117,7 +113,21 @@ func (handler *Handler) setBuyAmount(w http.ResponseWriter, r *http.Request) {
 
 		amountToBuyInCents := stringMoneyToCents(buyAmount)
 
-		if !user.HasEnoughMoney(amountToBuyInCents) {
+		triggerQuery := buildBuyTrigger(&user)
+		triggerQuery.StockSym = stockSymbol
+
+		var buyTrigger Trigger
+		db.conn.FirstOrCreate(&buyTrigger, &triggerQuery)
+		
+		oldAmount := buyTrigger.Amount
+		newAmount := amountToBuyInCents
+
+		amountDifference := int(newAmount)-int(oldAmount)
+		log.Println(amountDifference)
+
+		if amountDifference < 0 {
+			user.CurrentMoney += uint(amountDifference*(-1))
+		} else if !user.HasEnoughMoney(newAmount-oldAmount) {
 			fmt.Fprintf(w, "Insufficient funds")
 			errorEventParams := map[string]string {
 				"command": "SET_BUY_AMOUNT",
@@ -127,15 +137,11 @@ func (handler *Handler) setBuyAmount(w http.ResponseWriter, r *http.Request) {
 			}
 			logErrorEvent(errorEventParams, &user)
 			return
+		} else {
+			user.CurrentMoney -= uint(amountDifference)
 		}
 
-		// update user's money, this is now stored in the trigger
-		user.CurrentMoney = user.CurrentMoney - uint(amountToBuyInCents)
-
-		buyTrigger := buildBuyTrigger(&user)
-		buyTrigger.StockSym = stockSymbol
 		buyTrigger.Amount = uint(amountToBuyInCents)
-		buyTrigger.PriceThreshold = 0
 
 		// ====== START TRANSACTION ======
 		tx := db.conn.Begin()
@@ -145,7 +151,7 @@ func (handler *Handler) setBuyAmount(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if err := tx.Create(&buyTrigger).Error; err != nil {
+		if err := tx.Save(&buyTrigger).Error; err != nil {
 			tx.Rollback()
 			return
 		}
@@ -160,7 +166,6 @@ func (handler *Handler) setBuyAmount(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// What if this doesnt exist?
 func (handler *Handler) cancelSetBuy(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "POST" {
 		r.ParseForm()
@@ -173,9 +178,17 @@ func (handler *Handler) cancelSetBuy(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		t := Trigger{UserID: user.ID, StockSym: stockSymbol}
+		t := Trigger{
+			UserID: user.ID,
+			StockSym: stockSymbol,
+		}
+
 		var trig Trigger;
-		db.conn.First(&trig, &t)
+		if db.conn.First(&trig, &t).RecordNotFound() {
+			fmt.Fprintf(w,
+				"The trigger doesn't exist")
+			return
+		}
 
 		user.CurrentMoney = user.CurrentMoney + trig.Amount
 

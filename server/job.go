@@ -19,7 +19,7 @@ func checkTriggers() {
 	db.conn.Find(&triggers)
 	for _, trig := range triggers {
 		var user User
-		db.conn.First(&user)
+		db.conn.Where("ID = ?", trig.UserID).First(&user)
 
 		responseMap := getQuoteFromServer(user.Username, trig.StockSym)
 
@@ -32,7 +32,6 @@ func checkTriggers() {
 				UserID: user.ID,
 				StockSymbol: trig.StockSym,
 			}
-				//Number: amntToBuy,
 			user.CurrentMoney = user.CurrentMoney + leftover
 
 			// ======== START TRANSACTION ========
@@ -63,9 +62,6 @@ func checkTriggers() {
 		} else if trig.Type == "sell" && 
 				quotePrice > trig.PriceThreshold &&
 				trig.PriceThreshold != 0 {
-			log.Println("We are above the threshold so we can sell!")
-			// ex. quoted price is $750
-			// we are selling $500
 
 			// we need to update user's money
 			user.CurrentMoney += (trig.NumStocks * quotePrice)
