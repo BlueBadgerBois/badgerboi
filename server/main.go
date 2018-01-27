@@ -4,7 +4,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-
 	"github.com/kabukky/httpscerts"
 )
 
@@ -57,6 +56,7 @@ func runAsWebServer() {
 	http.HandleFunc("/setSellAmount", handler.setSellAmount)
 	http.HandleFunc("/cancelSetSell", handler.cancelSetSell)
 	http.HandleFunc("/setSellTrigger", handler.setSellTrigger)
+	http.HandleFunc("/dumplog", handler.dumplog)
 	http.ListenAndServe(":8082", nil)
 	// http.ListenAndServeTLS(":8082", "cert.pem", "key.pem", nil)
 }

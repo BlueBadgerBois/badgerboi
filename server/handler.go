@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"bufio"
 	"errors"
 	"html/template"
@@ -55,6 +56,7 @@ func (handler *Handler) add(w http.ResponseWriter, r *http.Request) {
 		db.conn.Save(&user)
 
 		logAddCommand(user)
+		logAccountTransaction(user, "add")
 
 		fmt.Fprintf(w,
 		"Success!\n\n" +
@@ -212,6 +214,32 @@ func (handler *Handler) cancelSetBuy(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (handler *Handler) dumplog(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "POST" {
+		r.ParseForm()
+		username := r.Form.Get("username")
+		outfile := r.Form.Get("outfile")
+
+		u := LogItem{Username: username}
+
+		var log_items []LogItem
+
+		if username == "admin" {
+			db.conn.Find(&log_items)
+		} else {
+			db.conn.Where(&u).Find(&log_items)
+		}
+
+		xmlLog := writeLogsToFile(outfile, log_items)
+
+		fmt.Fprintf(w, 
+			"Username: " + username + "\n" +
+			"Outfile: " + outfile + "\n" +
+			"Logfile contents: ")
+			fmt.Fprintf(w, xmlLog)
+	}
+}
+
 func (handler *Handler) setBuyTrigger(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "POST" {
 		r.ParseForm()
@@ -352,6 +380,19 @@ func (handler *Handler) cancelSetSell(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// Save an ErrorEventLogItem
+func logErrorEvent(params map[string]string, user *User) {
+	errorEventLogItem := buildErrorEventLogItemStruct()
+	errorEventLogItem.Command = params["command"]
+	errorEventLogItem.Username = user.Username
+	errorEventLogItem.StockSymbol = params["stockSymbol"]
+	errorEventLogItem.Funds = centsToDollarsString(user.CurrentMoney)
+	errorEventLogItem.ErrorMessage = params["errorMessage"]
+	username := user.Username
+
+	errorEventLogItem.SaveRecord(username)
+}
+
 func (handler *Handler) setSellTrigger(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "POST" {
 		r.ParseForm()
@@ -410,6 +451,51 @@ func (handler *Handler) setSellTrigger(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// Save a UserCommandLogItem for an ADD command
+func logAddCommand(user *User) {
+	commandLogItem := buildUserCommandLogItemStruct()
+	commandLogItem.Command = "ADD"
+	commandLogItem.Username = user.Username
+	commandLogItem.StockSymbol = ""
+	commandLogItem.Funds = centsToDollarsString(user.CurrentMoney)
+	username := user.Username
+
+	commandLogItem.SaveRecord(username)
+}
+
+func logAccountTransaction(user *User, action string) {
+	transactionLogItem := buildAccountTransactionLogItemStruct()
+	transactionLogItem.Action = action
+	transactionLogItem.Username = user.Username
+	transactionLogItem.Funds = centsToDollarsString(user.CurrentMoney)
+	username := user.Username
+
+	transactionLogItem.SaveRecord(username)
+}
+
+func logSystemEvent(user *User, params map[string]string) {
+	systemEventLogItem := buildSystemEventLogItemStruct()
+	systemEventLogItem.Command = params["command"]
+	systemEventLogItem.StockSymbol = params["stockSymbol"]
+	systemEventLogItem.Filename = params["filename"]
+	systemEventLogItem.Username = user.Username
+	systemEventLogItem.Funds = centsToDollarsString(user.CurrentMoney)
+	username := user.Username
+
+	systemEventLogItem.SaveRecord(username)
+}
+
+func logSummaryCommand(user *User) {
+	commandLogItem := buildUserCommandLogItemStruct()
+	commandLogItem.Command = "DISPLAY_SUMMARY"
+	commandLogItem.Username = user.Username
+	commandLogItem.StockSymbol = "" // No stock symbol for a summary
+	commandLogItem.Funds = centsToDollarsString(user.CurrentMoney)
+	username := user.Username
+
+	commandLogItem.SaveRecord(username)
+}
+
 // Fetch a quote from the quote server and log it
 func getQuoteFromServer(username string, stockSymbol string) map[string]string {
 	conn, err := net.Dial("tcp", "quoteServer:3333")
@@ -426,6 +512,31 @@ func getQuoteFromServer(username string, stockSymbol string) map[string]string {
 	logQuoteServer(responseMap)
 
 	return responseMap
+}
+
+// Save a QuoteServerLogItem
+func logQuoteServer(params map[string]string) {
+	quoteLogItem := buildQuoteServerLogItemStruct()
+	quoteLogItem.Price = params["price"]
+	quoteLogItem.StockSymbol = params["stockSymbol"]
+	quoteLogItem.Username = params["username"]
+	quoteLogItem.QuoteServerTime = params["quoteServerTime"]
+	quoteLogItem.Cryptokey = params["cryptokey"]
+	username := params["username"]
+
+	quoteLogItem.SaveRecord(username)
+}
+
+// Save a UserCommandLogItem for a QUOTE command
+func logQuoteCommand(params map[string]string, user *User) {
+	commandLogItem := buildUserCommandLogItemStruct()
+	commandLogItem.Command = "QUOTE"
+	commandLogItem.Username = params["username"]
+	commandLogItem.StockSymbol = params["stockSymbol"]
+	commandLogItem.Funds = centsToDollarsString(user.CurrentMoney)
+	username := params["username"]
+
+	commandLogItem.SaveRecord(username)
 }
 
 func quoteResponseToMap(message string) map[string]string {
@@ -481,6 +592,7 @@ func centsToDollarsString(cents uint) string {
 	// 2 is precision after decimal point to display
 	return strconv.FormatFloat(centsToDollars(cents), 'f', 2, 64)
 }
+
 func centsToDollars(cents uint) float64 {
 	return float64(cents) / 100
 }
@@ -490,58 +602,35 @@ func anyStocksCanBeBought(amountToBuyInCents uint, quotedPriceInCents uint) bool
 	return numStocksToBuy > 0
 }
 
-// Save an ErrorEventLogItem
-func logErrorEvent(params map[string]string, user *User) {
-	errorEventLogItem := buildErrorEventLogItemStruct()
-	errorEventLogItem.Command = params["command"]
-	errorEventLogItem.Username = user.Username
-	errorEventLogItem.StockSymbol = params["stockSymbol"]
-	errorEventLogItem.Funds = centsToDollarsString(user.CurrentMoney)
-	errorEventLogItem.ErrorMessage = params["errorMessage"]
+func writeLogsToFile(outfile string, log_items []LogItem) string{
+	var logFileXML bytes.Buffer 
+	logFileXML.WriteString("<?xml version=\"1.0\"?>\n")
+	logFileXML.WriteString("<log>\n")
 
-	errorEventLogItem.SaveRecord()
+	for i := 0; i < len(log_items); i++ {
+		fmt.Println(log_items[i].Data)
+
+		logItem := strings.Replace(log_items[i].Data, "\"", "", -1)
+		logItem = strings.Replace(logItem, "}", "", -1)
+		logItem = strings.Replace(logItem, "{", "", -1)
+
+		keyValues := strings.Split(logItem, ",")
+
+		logType := strings.Split(keyValues[0], ":")
+
+		logFileXML.WriteString("\t<" + logType[1] + ">\n")
+
+		for i := 0; i < len(keyValues); i++ {
+			attribute := strings.Split(keyValues[i], ":")
+			logFileXML.WriteString("\t\t<" + attribute[0] + ">")
+			logFileXML.WriteString(attribute[1])
+			logFileXML.WriteString("</" + attribute[0] + ">\n")
+		}
+		logFileXML.WriteString("\t</" + logType[1] + ">\n")
+	}
+	logFileXML.WriteString("</log>\n")
+
+	fmt.Println(logFileXML.String())
+	return logFileXML.String()
+	//ioutil.WriteFile(outfile, logFileXML.String())
 }
-
-// Save a UserCommandLogItem for an ADD command
-func logAddCommand(user *User) {
-	commandLogItem := buildUserCommandLogItemStruct()
-	commandLogItem.Command = "ADD"
-	commandLogItem.Username = user.Username
-	commandLogItem.StockSymbol = ""
-	commandLogItem.Funds = centsToDollarsString(user.CurrentMoney)
-
-	commandLogItem.SaveRecord()
-}
-
-func logSummaryCommand(user *User) {
-	commandLogItem := buildUserCommandLogItemStruct()
-	commandLogItem.Command = "DISPLAY_SUMMARY"
-	commandLogItem.Username = user.Username
-	commandLogItem.StockSymbol = "" // No stock symbol for a summary
-	commandLogItem.Funds = centsToDollarsString(user.CurrentMoney)
-	commandLogItem.SaveRecord()
-}
-
-// Save a QuoteServerLogItem
-func logQuoteServer(params map[string]string) {
-	quoteLogItem := buildQuoteServerLogItemStruct()
-	quoteLogItem.Price = params["price"]
-	quoteLogItem.StockSymbol = params["stockSymbol"]
-	quoteLogItem.Username = params["username"]
-	quoteLogItem.QuoteServerTime = params["quoteServerTime"]
-	quoteLogItem.Cryptokey = params["cryptokey"]
-
-	quoteLogItem.SaveRecord()
-}
-
-// Save a UserCommandLogItem for a QUOTE command
-func logQuoteCommand(params map[string]string, user *User) {
-	commandLogItem := buildUserCommandLogItemStruct()
-	commandLogItem.Command = "QUOTE"
-	commandLogItem.Username = params["username"]
-	commandLogItem.StockSymbol = params["stockSymbol"]
-	commandLogItem.Funds = centsToDollarsString(user.CurrentMoney)
-
-	commandLogItem.SaveRecord()
-}
-

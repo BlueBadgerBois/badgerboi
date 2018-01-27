@@ -248,8 +248,9 @@ func logBuyCommand(stockSymbol string, user *User) {
 	commandLogItem.Username = user.Username
 	commandLogItem.StockSymbol = stockSymbol
 	commandLogItem.Funds = centsToDollarsString(user.CurrentMoney)
+	username := user.Username
 
-	commandLogItem.SaveRecord()
+	commandLogItem.SaveRecord(username)
 }
 
 // Save a UserCommandLogItem for a COMMIT_BUY command
@@ -259,8 +260,9 @@ func logCommitBuyCommand(stockSymbol string, user *User) {
 	commandLogItem.Username = user.Username
 	commandLogItem.StockSymbol = stockSymbol
 	commandLogItem.Funds = centsToDollarsString(user.CurrentMoney)
+	username := user.Username
 
-	commandLogItem.SaveRecord()
+	commandLogItem.SaveRecord(username)
 }
 
 // Save a UserCommandLogItem for a COMMIT_BUY command
@@ -270,6 +272,8 @@ func logCancelBuyCommand(stockSymbol string, user *User) {
 	commandLogItem.Username = user.Username
 	commandLogItem.StockSymbol = stockSymbol
 	commandLogItem.Funds = centsToDollarsString(user.CurrentMoney)
+	username := user.Username
 
-	commandLogItem.SaveRecord()
+
+	commandLogItem.SaveRecord(username)
 }

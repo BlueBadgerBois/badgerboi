@@ -135,6 +135,18 @@ func sendCommands (commands []string) {
 			}
 			sendRequest(req)
 		}
+
+		if command[0] == "DUMPLOG" {
+			data := url.Values{}
+			data.Set("username", command[1])
+			data.Add("outfile", command[2])
+			req, err := http.NewRequest("POST", serverUrl + "/dumplog", strings.NewReader(data.Encode()))
+			if err != nil {
+				fmt.Println("Error making a new request:")
+				fmt.Println(err)
+			}
+			sendRequest(req)
+		}
 	}
 }
 
