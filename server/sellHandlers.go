@@ -131,6 +131,63 @@ func (handler *Handler) commitSell(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (handler *Handler) cancelSell(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "POST" {
+		r.ParseForm()
+		username := r.Form.Get("username")
+
+		user, err := db.userFromUsername(username)
+		if err != nil {
+			fmt.Fprintf(w, "Failure! user does not exist!\n\n")
+			errorEventParams := map[string]string {
+				"command": "COMMIT_SELL",
+				"stockSymbol": "",
+				"errorMessage": err.Error(),
+			}
+			logErrorEvent(errorEventParams, user)
+			return
+		}
+
+		transactionToCancel, err := db.newestPendingTransactionForUser(user, "sell")
+		if err != nil {
+			fmt.Fprintf(w, "Failure! " + err.Error())
+			errorEventParams := map[string]string {
+				"command": "CANCEL_SELL",
+				"stockSymbol": "",
+				"errorMessage": err.Error(),
+			}
+			logErrorEvent(errorEventParams, user)
+
+			return
+		}
+
+		logCancelSellCommand(transactionToCancel.StockSymbol, user)
+
+		// later we need to make the job server just update the quote price
+		currentTime := db.getCurrentTime()
+		timeDifference := currentTime.Sub(transactionToCancel.CreatedAt)
+		if timeDifference.Seconds() > MAX_TRANSACTION_VALIDITY_SECS {
+			errMsg := "Failure! Most recent SELL transaction is more than 60 seconds old."
+			fmt.Fprintf(w, errMsg)
+			errorEventParams := map[string]string {
+				"command": "CANCEL_SELL",
+				"stockSymbol": transactionToCancel.StockSymbol,
+				"errorMessage": errMsg,
+			}
+			logErrorEvent(errorEventParams, user)
+
+			return
+		}
+
+		db.cancelTransaction(transactionToCancel)
+
+		successMsg := "SELL cancelled.\n" +
+		"symbol: " + transactionToCancel.StockSymbol +
+		"\nmoney that was to be made: " + centsToDollarsString(transactionToCancel.AmountInCents)
+		fmt.Fprintf(w, successMsg)
+	}
+}
+
 func createSellTransaction(user *User, stockSymbol string, amountToSellInCents uint, quotedPriceInCents uint) (error, *Transaction) {
 	numStocksNeeded := stocksNeededToGetAmountInCents(amountToSellInCents, quotedPriceInCents)
 
@@ -195,13 +252,13 @@ func logCommitSellCommand(stockSymbol string, user *User) {
 	commandLogItem.SaveRecord()
 }
 
-// // Save a UserCommandLogItem for a COMMIT_SELL command
-// func logCancelSellCommand(stockSymbol string, user *User) {
-// 	commandLogItem := buildUserCommandLogItemStruct()
-// 	commandLogItem.Command = "CANCEL_SELL"
-// 	commandLogItem.Username = user.Username
-// 	commandLogItem.StockSymbol = stockSymbol
-// 	commandLogItem.Funds = centsToDollarsString(user.CurrentMoney)
+// Save a UserCommandLogItem for a COMMIT_SELL command
+func logCancelSellCommand(stockSymbol string, user *User) {
+	commandLogItem := buildUserCommandLogItemStruct()
+	commandLogItem.Command = "CANCEL_SELL"
+	commandLogItem.Username = user.Username
+	commandLogItem.StockSymbol = stockSymbol
+	commandLogItem.Funds = centsToDollarsString(user.CurrentMoney)
 
-// 	commandLogItem.SaveRecord()
-// }
+	commandLogItem.SaveRecord()
+}
