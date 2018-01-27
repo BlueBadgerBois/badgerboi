@@ -352,9 +352,6 @@ func (handler *Handler) cancelSetSell(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// TODO: IF the trigger already exists and we're just updating the value,
-// then we need to make sure we don't take more stocks from the user..
-// need to think about how to do this properly
 func (handler *Handler) setSellTrigger(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "POST" {
 		r.ParseForm()
@@ -396,8 +393,14 @@ func (handler *Handler) setSellTrigger(w http.ResponseWriter, r *http.Request) {
 		var stockHolding StockHolding
 		db.conn.First(&stockHolding, &s)
 
-		// 5. Remove the stocks that equal the current quoted price for the trig
-		stockHolding.Number -= numStocks
+		// 5. update the stock holding
+		difference := int(numStocks) - int(trig.NumStocks)
+		if difference < 0 {
+			stockHolding.Number += uint(difference*(-1))
+		} else {
+			stockHolding.Number -= uint(difference)
+		}
+
 		db.conn.Save(&stockHolding)
 
 		// 6. Update the trigger to hold the number of stocks and set the threshold
