@@ -16,14 +16,24 @@ type Transaction struct {
 	QuotedStockPrice uint // Quoted price of stock in cents (valid until 60 seconds after created_at)
 }
 
-func buildBuyTransaction(user *User) Transaction {
+func buildBuyTransaction(user *User) *Transaction {
 	buyTransaction := Transaction{
 		UserID: user.ID,
 		Type: "buy",
 		State: "pending",
 	}
 
-	return buyTransaction
+	return &buyTransaction
+}
+
+func buildSellTransaction(user *User) *Transaction {
+	sellTransaction := Transaction{
+		UserID: user.ID,
+		Type: "sell",
+		State: "pending",
+	}
+
+	return &sellTransaction
 }
 
 func (db *DB) cancelTransaction(transaction *Transaction) {
