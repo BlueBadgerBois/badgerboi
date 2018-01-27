@@ -7,11 +7,6 @@ import (
 	"net/http"
 )
 
-func stocksNeededToGetAmountInCents(amountToSellInCents uint, stockPriceInCents uint) uint {
-	numberToSell := math.Ceil(float64(amountToSellInCents) / float64(stockPriceInCents))
-	return uint(numberToSell)
-}
-
 func (handler *Handler) sell(w http.ResponseWriter, r *http.Request) {
 	// Sell the minimum number of stocks needed to make the revenue given in sellAmount. 
 	if r.Method == "POST" {
@@ -45,6 +40,97 @@ func (handler *Handler) sell(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (handler *Handler) commitSell(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "POST" {
+		r.ParseForm()
+		username := r.Form.Get("username")
+
+		user, err := db.userFromUsername(username)
+		if err != nil {
+			fmt.Fprintf(w, "Failure! user does not exist!\n\n")
+			errorEventParams := map[string]string {
+				"command": "COMMIT_SELL",
+				"stockSymbol": "",
+				"errorMessage": err.Error(),
+			}
+			logErrorEvent(errorEventParams, user)
+			return
+		}
+
+		transactionToCommit, err := db.newestPendingTransactionForUser(user, "sell")
+		if err != nil { // If no transaction can be found
+			fmt.Fprintf(w, "Failure! " + err.Error())
+			errorEventParams := map[string]string {
+				"command": "COMMIT_SELL",
+				"stockSymbol": "",
+				"errorMessage": err.Error(),
+			}
+			logErrorEvent(errorEventParams, user)
+			return
+		}
+
+		logCommitSellCommand(transactionToCommit.StockSymbol, user)
+
+		// Check to make sure the transaction is not stale
+		// later we need to make the job server just update the quote price
+		currentTime := db.getCurrentTime()
+		timeDifference := currentTime.Sub(transactionToCommit.CreatedAt)
+		if timeDifference.Seconds() > MAX_TRANSACTION_VALIDITY_SECS {
+			errMsg :=  "Failure! Most recent sell transaction is more than 60 seconds old."
+			fmt.Fprintf(w, errMsg)
+			errorEventParams := map[string]string {
+				"command": "COMMIT_SELL",
+				"stockSymbol": transactionToCommit.StockSymbol,
+				"errorMessage": errMsg,
+			}
+			logErrorEvent(errorEventParams, user)
+			return
+		}
+
+		numStocksNeeded := stocksNeededToGetAmountInCents(transactionToCommit.AmountInCents,
+		transactionToCommit.QuotedStockPrice)
+
+		tx := db.conn.Begin()
+		tx.Where(&User{Username: user.Username}).First(&user) // reload user
+		userHolding, _ := stockHolding(tx, user, transactionToCommit.StockSymbol) // grab the user's current holding for the stock
+
+		// Check if user still has enough stocks to make the sale
+		if !userHolding.sufficient(numStocksNeeded) {
+			tx.Rollback() // rollback immediately
+
+			errMsg := "Failure! User does not have enough stocks\n\n" +
+			"User ID: " + user.Username + "\n" +
+			"Stock Symbol: " + transactionToCommit.StockSymbol + "\n" +
+			"Number to sell: " + fmt.Sprint(numStocksNeeded) +
+			"\nCurrent holdings: " + fmt.Sprint(userHolding.Number)
+			errorEventParams := map[string]string {
+				"command": "COMMIT_SELL",
+				"stockSymbol": transactionToCommit.StockSymbol,
+				"errorMessage": errMsg,
+			}
+			logErrorEvent(errorEventParams, user)
+			fmt.Fprintf(w, errMsg)
+			return
+		}
+
+		// withdraw the stocks
+		userHolding.Withdraw(tx, numStocksNeeded)
+
+		centsToDeposit := moneyInCentsForStocks(numStocksNeeded, transactionToCommit.QuotedStockPrice)
+
+		// give user the money
+		user.DepositMoney(tx, centsToDeposit)
+
+		tx.Commit()
+
+		fmt.Fprintf(w, "SELL committed.\n " +
+		"symbol: " + transactionToCommit.StockSymbol +
+		"\nnum sold: " + fmt.Sprint(numStocksNeeded) +
+		"\nquoted price: " + centsToDollarsString(transactionToCommit.QuotedStockPrice) +
+		"\namount of money deposited: " + centsToDollarsString(centsToDeposit))
+	}
+}
+
 func createSellTransaction(user *User, stockSymbol string, amountToSellInCents uint, quotedPriceInCents uint) (error, *Transaction) {
 	numStocksNeeded := stocksNeededToGetAmountInCents(amountToSellInCents, quotedPriceInCents)
 
@@ -55,7 +141,7 @@ func createSellTransaction(user *User, stockSymbol string, amountToSellInCents u
 	sellTransaction.QuotedStockPrice = quotedPriceInCents
 	db.conn.NewRecord(sellTransaction)
 
-	userHolding, _ := db.stockHolding(user, sellTransaction.StockSymbol)
+	userHolding, _ := stockHolding(db.conn, user, sellTransaction.StockSymbol)
 
 	// Check if user has enough stocks to make the given amount of revenue
 	if !userHolding.sufficient(numStocksNeeded) {
@@ -77,6 +163,16 @@ func createSellTransaction(user *User, stockSymbol string, amountToSellInCents u
 	return nil, sellTransaction
 }
 
+func stocksNeededToGetAmountInCents(amountToSellInCents uint, stockPriceInCents uint) uint {
+	numberToSell := math.Ceil(float64(amountToSellInCents) / float64(stockPriceInCents))
+	return uint(numberToSell)
+}
+
+func moneyInCentsForStocks(numStocks uint, stockPrice uint) uint {
+	return numStocks * stockPrice
+}
+
+
 // Save a UserCommandLogItem for a SELL command
 func logSellCommand(stockSymbol string, user *User) {
 	commandLogItem := buildUserCommandLogItemStruct()
@@ -88,16 +184,16 @@ func logSellCommand(stockSymbol string, user *User) {
 	commandLogItem.SaveRecord()
 }
 
-// // Save a UserCommandLogItem for a COMMIT_SELL command
-// func logCommitSellCommand(stockSymbol string, user *User) {
-// 	commandLogItem := buildUserCommandLogItemStruct()
-// 	commandLogItem.Command = "COMMIT_SELL"
-// 	commandLogItem.Username = user.Username
-// 	commandLogItem.StockSymbol = stockSymbol
-// 	commandLogItem.Funds = centsToDollarsString(user.CurrentMoney)
+// Save a UserCommandLogItem for a COMMIT_SELL command
+func logCommitSellCommand(stockSymbol string, user *User) {
+	commandLogItem := buildUserCommandLogItemStruct()
+	commandLogItem.Command = "COMMIT_SELL"
+	commandLogItem.Username = user.Username
+	commandLogItem.StockSymbol = stockSymbol
+	commandLogItem.Funds = centsToDollarsString(user.CurrentMoney)
 
-// 	commandLogItem.SaveRecord()
-// }
+	commandLogItem.SaveRecord()
+}
 
 // // Save a UserCommandLogItem for a COMMIT_SELL command
 // func logCancelSellCommand(stockSymbol string, user *User) {

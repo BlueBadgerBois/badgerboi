@@ -123,10 +123,8 @@ func (handler *Handler) commitBuy(w http.ResponseWriter, r *http.Request) {
 				"stockSymbol": transactionToCommit.StockSymbol,
 				"errorMessage": "Insufficient funds",
 			}
-
 			fmt.Fprintf(w, errMsg)
 			logErrorEvent(errorEventParams, user)
-
 			return
 		}
 

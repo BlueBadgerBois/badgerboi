@@ -53,7 +53,7 @@ func (db *DB) newestPendingTransactionForUser(user *User, txType string) (*Trans
 	RecordNotFound()
 
 	if notFound {
-		return &transaction, errors.New("No pending transactions found for user " + user.Username)
+		return &transaction, errors.New("No pending " + txType + " transactions found for user " + user.Username)
 	}
 
 	return &transaction, nil

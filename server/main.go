@@ -48,6 +48,7 @@ func runAsWebServer() {
 	http.HandleFunc("/commitBuy", handler.commitBuy)
 	http.HandleFunc("/cancelBuy", handler.cancelBuy)
 	http.HandleFunc("/sell", handler.sell)
+	http.HandleFunc("/commitSell", handler.commitSell)
 	http.HandleFunc("/summary", handler.summary)
 	http.HandleFunc("/setBuyAmount", handler.setBuyAmount)
 	http.HandleFunc("/cancelSetBuy", handler.cancelSetBuy)
