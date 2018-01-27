@@ -41,12 +41,13 @@ func (db *DB) cancelTransaction(transaction *Transaction) {
 	db.conn.Save(transaction)
 }
 
-func (db *DB) newestPendingTransactionForUser(user *User) (*Transaction, error) {
+func (db *DB) newestPendingTransactionForUser(user *User, txType string) (*Transaction, error) {
 	transaction := Transaction{}
 
 	notFound := db.conn.
 	Order("created_at desc").
 	Where("user_id = ?", user.ID).
+	Where("type = ?", txType).
 	Where("state = ?", "pending").
 	First(&transaction).
 	RecordNotFound()

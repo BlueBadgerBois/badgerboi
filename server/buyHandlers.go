@@ -39,7 +39,7 @@ func (handler *Handler) buy(w http.ResponseWriter, r *http.Request) {
 		err, _ := createBuyTransaction(user, stockSymbol, amountToBuyInCents, quoteResponseMap["price"])
 
 		if err != nil {
-			fmt.Fprintf(w, "Error!", err.Error())
+			fmt.Fprintf(w, "Error!" + err.Error())
 			return
 		}
 
@@ -57,7 +57,6 @@ func (handler *Handler) commitBuy(w http.ResponseWriter, r *http.Request) {
 		r.ParseForm()
 		username := r.Form.Get("username")
 
-
 		user, err := db.userFromUsername(username)
 		if err != nil {
 			fmt.Fprintf(w, "Failure! user does not exist!\n\n")
@@ -71,7 +70,7 @@ func (handler *Handler) commitBuy(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		transactionToCommit, err := db.newestPendingTransactionForUser(user)
+		transactionToCommit, err := db.newestPendingTransactionForUser(user, "buy")
 		if err != nil {
 			fmt.Fprintf(w, "Failure! " + err.Error())
 			errorEventParams := map[string]string {
@@ -177,7 +176,7 @@ func (handler *Handler) cancelBuy(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		transactionToCancel, err := db.newestPendingTransactionForUser(user)
+		transactionToCancel, err := db.newestPendingTransactionForUser(user, "buy")
 		if err != nil {
 			fmt.Fprintf(w, "Failure! " + err.Error())
 			errorEventParams := map[string]string {
