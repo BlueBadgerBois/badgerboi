@@ -10,7 +10,6 @@ services:
     build: ./server
     volumes:
       - ./server:/go/src/app
-      - ./db/:/db
     environment:
       ROLE: web
     networks:
