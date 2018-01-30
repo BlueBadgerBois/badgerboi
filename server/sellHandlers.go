@@ -93,7 +93,7 @@ func (handler *Handler) commitSell(w http.ResponseWriter, r *http.Request) {
 		// tx := db.conn.Begin()
 		tx := db.Begin()
 		tx.conn.Where(&User{Username: user.Username}).First(&user) // reload user
-		userHolding, _ := buildStockHolding(tx, user, transactionToCommit.StockSymbol) // grab the user's current holding for the stock
+		userHolding, _ := BuildStockHolding(tx, user, transactionToCommit.StockSymbol) // grab the user's current holding for the stock
 
 		// Check if user still has enough stocks to make the sale
 		if !userHolding.Sufficient(numStocksNeeded) {
@@ -115,12 +115,12 @@ func (handler *Handler) commitSell(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// withdraw the stocks
-		userHolding.Withdraw(tx.conn, numStocksNeeded)
+		userHolding.Withdraw(tx, numStocksNeeded)
 
 		centsToDeposit := moneyInCentsForStocks(numStocksNeeded, transactionToCommit.QuotedStockPrice)
 
 		// give user the money
-		user.DepositMoney(tx.conn, centsToDeposit)
+		user.DepositMoney(tx, centsToDeposit)
 
 		tx.Commit()
 
@@ -199,7 +199,7 @@ func createSellTransaction(user *User, stockSymbol string, amountToSellInCents u
 	sellTransaction.QuotedStockPrice = quotedPriceInCents
 	db.conn.NewRecord(sellTransaction)
 
-	userHolding, _ := buildStockHolding(db, user, sellTransaction.StockSymbol)
+	userHolding, _ := BuildStockHolding(db, user, sellTransaction.StockSymbol)
 
 	// Check if user has enough stocks to make the given amount of revenue
 	if !userHolding.Sufficient(numStocksNeeded) {

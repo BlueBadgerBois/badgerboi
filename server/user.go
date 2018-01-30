@@ -33,7 +33,7 @@ func (user *User) HasEnoughMoney(targetAmount uint) bool {
 	return user.CurrentMoney >= targetAmount
 }
 
-func (user *User) DepositMoney(db *gorm.DB, moneyInCents uint) {
+func (user *User) DepositMoney(db *DBW, moneyInCents uint) {
 	user.CurrentMoney += moneyInCents
-	db.Save(user)
+	db.conn.Save(user)
 }

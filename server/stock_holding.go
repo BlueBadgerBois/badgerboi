@@ -12,7 +12,7 @@ type StockHolding struct {
 	Number uint // Number of the stock held by the user
 }
 
-func buildStockHolding(db *DBW, user *User, stockSymbol string) (*StockHolding, error) {
+func BuildStockHolding(db *DBW, user *User, stockSymbol string) (*StockHolding, error) {
 	holdingQuery := StockHolding{UserID: user.ID, StockSymbol: stockSymbol}
 	holding := StockHolding{}
 	notFound := db.conn.
@@ -33,7 +33,7 @@ func (holding *StockHolding) Sufficient(targetNumber uint) bool {
 }
 
 // assumes you won't withdraw over the limit
-func (holding *StockHolding) Withdraw(db *gorm.DB, numToWithdraw uint) {
+func (holding *StockHolding) Withdraw(db *DBW, numToWithdraw uint) {
 	holding.Number -= numToWithdraw
-	db.Save(holding)
+	db.conn.Save(holding)
 }
