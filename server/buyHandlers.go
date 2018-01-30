@@ -150,9 +150,9 @@ func (handler *Handler) commitBuy(w http.ResponseWriter, r *http.Request) {
 
 		tx.conn.Commit()
 
-		fmt.Fprintf(w, "BUY committed.\n " +
+		fmt.Fprintf(w, "BUY committed.\n" +
 		"symbol: " + transactionToCommit.StockSymbol +
-		"\nnum bought: " + string(numStocksToBuy) +
+		"\nnum bought: " + fmt.Sprintf("%v", numStocksToBuy) +
 		"\nquoted price: " + centsToDollarsString(transactionToCommit.QuotedStockPrice))
 	}
 }
