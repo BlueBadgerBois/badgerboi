@@ -16,7 +16,7 @@ type Transaction struct {
 	QuotedStockPrice uint // Quoted price of stock in cents (valid until 60 seconds after created_at)
 }
 
-func buildBuyTransaction(user *User) *Transaction {
+func BuildBuyTransaction(user *User) *Transaction {
 	buyTransaction := Transaction{
 		UserID: user.ID,
 		Type: "buy",
@@ -26,7 +26,7 @@ func buildBuyTransaction(user *User) *Transaction {
 	return &buyTransaction
 }
 
-func buildSellTransaction(user *User) *Transaction {
+func BuildSellTransaction(user *User) *Transaction {
 	sellTransaction := Transaction{
 		UserID: user.ID,
 		Type: "sell",
@@ -36,12 +36,12 @@ func buildSellTransaction(user *User) *Transaction {
 	return &sellTransaction
 }
 
-func (db *DB) cancelTransaction(transaction *Transaction) {
+func (transaction *Transaction) Cancel(db *DB) {
 	transaction.State = "cancelled"
 	db.conn.Save(transaction)
 }
 
-func (db *DB) newestPendingTransactionForUser(user *User, txType string) (*Transaction, error) {
+func NewestPendingTransactionForUser(db *DB, user *User, txType string) (*Transaction, error) {
 	transaction := Transaction{}
 
 	notFound := db.conn.

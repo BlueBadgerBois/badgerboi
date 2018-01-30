@@ -50,7 +50,7 @@ type UserCommandLogItem struct {
 	Funds string // should be in dollars
 }
 
-func buildUserCommandLogItemStruct() UserCommandLogItem {
+func BuildUserCommandLogItemStruct() UserCommandLogItem {
 	logItem := UserCommandLogItem {
 		LogType: "UserCommandType",
 		Server: "someServer",
@@ -66,7 +66,7 @@ func (logItem *UserCommandLogItem) SaveRecord(username string) {
 
 	jsonString := bytesToString(jsonBytes)
 
-	db.saveLogItem(username, jsonString)
+	saveLogItem(db, username, jsonString)
 }
 
 type QuoteServerLogItem struct {
@@ -81,7 +81,7 @@ type QuoteServerLogItem struct {
 	Cryptokey string
 }
 
-func buildQuoteServerLogItemStruct() QuoteServerLogItem {
+func BuildQuoteServerLogItemStruct() QuoteServerLogItem {
 	logItem := QuoteServerLogItem {
 		LogType: "QuoteServerType",
 		Server: "someServer",
@@ -96,7 +96,7 @@ func (logItem *QuoteServerLogItem) SaveRecord(username string) {
 
 	jsonString := bytesToString(jsonBytes)
 
-	db.saveLogItem(username, jsonString)
+	saveLogItem(db, username, jsonString)
 }
 
 
@@ -110,7 +110,7 @@ type AccountTransactionLogItem struct {
 	Funds string // dollars
 }
 
-func buildAccountTransactionLogItemStruct() AccountTransactionLogItem {
+func BuildAccountTransactionLogItemStruct() AccountTransactionLogItem {
 	logItem := AccountTransactionLogItem {
 		LogType: "AcountTransactionType",
 		Server: "someServer",
@@ -125,7 +125,7 @@ func (logItem *AccountTransactionLogItem) SaveRecord(username string) {
 
 	jsonString := bytesToString(jsonBytes)
 
-	db.saveLogItem(username, jsonString)
+	saveLogItem(db, username, jsonString)
 }
 
 type SystemEventLogItem struct {
@@ -140,7 +140,7 @@ type SystemEventLogItem struct {
 	Funds string // dollars
 }
 
-func buildSystemEventLogItemStruct() SystemEventLogItem {
+func BuildSystemEventLogItemStruct() SystemEventLogItem {
 	logItem := SystemEventLogItem {
 		LogType: "SystemEventType",
 		Server: "someServer",
@@ -155,7 +155,7 @@ func (logItem *SystemEventLogItem) SaveRecord(username string) {
 
 	jsonString := bytesToString(jsonBytes)
 
-	db.saveLogItem(username, jsonString)
+	saveLogItem(db, username, jsonString)
 }
 
 type ErrorEventLogItem struct {
@@ -171,7 +171,7 @@ type ErrorEventLogItem struct {
 	ErrorMessage string
 }
 
-func buildErrorEventLogItemStruct() ErrorEventLogItem {
+func BuildErrorEventLogItemStruct() ErrorEventLogItem {
 	logItem := ErrorEventLogItem {
 		LogType: "ErrorEventType",
 		Server: "someServer",
@@ -187,7 +187,7 @@ func (logItem *ErrorEventLogItem) SaveRecord(username string) {
 
 	jsonString := bytesToString(jsonBytes)
 
-	db.saveLogItem(username, jsonString)
+	saveLogItem(db, username, jsonString)
 }
 
 type DebugLogItem struct {
@@ -205,4 +205,10 @@ type DebugLogItem struct {
 
 func bytesToString(bytes []byte) string {
 	return string(bytes[:])
+}
+
+func saveLogItem(db *DB, username string, jsonData string) {
+	logItem := LogItem{Username: username, Data: jsonData}
+	db.conn.NewRecord(logItem)
+	db.conn.Create(&logItem)
 }

@@ -13,7 +13,7 @@ type User struct {
 	StockHoldings []StockHolding
 }
 
-func (db *DB) userFromUsernameOrCreate(username string) *User {
+func  UserFromUsernameOrCreate(db *DB, username string) *User {
 	u := User{Username: username}
 
 	var user User
@@ -21,7 +21,7 @@ func (db *DB) userFromUsernameOrCreate(username string) *User {
 	return &user
 }
 
-func (db *DB) userFromUsername(username string) (*User, error) {
+func UserFromUsername(db *DB, username string) (*User, error) {
 	user := User{}
 	if db.conn.Where(&User{Username: username}).First(&user).RecordNotFound() {
 		return &user, errors.New("User " + username + " not found!")

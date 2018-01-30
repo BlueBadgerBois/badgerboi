@@ -17,7 +17,7 @@ func (handler *Handler) sell(w http.ResponseWriter, r *http.Request) {
 
 		amountToSellInCents := stringMoneyToCents(sellAmount)
 
-		user := db.userFromUsernameOrCreate(username)
+		user := UserFromUsernameOrCreate(db, username)
 
 		logSellCommand(stockSymbol, user)
 
@@ -45,7 +45,7 @@ func (handler *Handler) commitSell(w http.ResponseWriter, r *http.Request) {
 		r.ParseForm()
 		username := r.Form.Get("username")
 
-		user, err := db.userFromUsername(username)
+		user, err := UserFromUsername(db, username)
 		if err != nil {
 			fmt.Fprintf(w, "Failure! user does not exist!\n\n")
 			errorEventParams := map[string]string {
@@ -57,7 +57,7 @@ func (handler *Handler) commitSell(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		transactionToCommit, err := db.newestPendingTransactionForUser(user, "sell")
+		transactionToCommit, err := NewestPendingTransactionForUser(db, user, "sell")
 		if err != nil { // If no transaction can be found
 			fmt.Fprintf(w, "Failure! " + err.Error())
 			errorEventParams := map[string]string {
@@ -136,7 +136,7 @@ func (handler *Handler) cancelSell(w http.ResponseWriter, r *http.Request) {
 		r.ParseForm()
 		username := r.Form.Get("username")
 
-		user, err := db.userFromUsername(username)
+		user, err := UserFromUsername(db, username)
 		if err != nil {
 			fmt.Fprintf(w, "Failure! user does not exist!\n\n")
 			errorEventParams := map[string]string {
@@ -148,7 +148,7 @@ func (handler *Handler) cancelSell(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		transactionToCancel, err := db.newestPendingTransactionForUser(user, "sell")
+		transactionToCancel, err := NewestPendingTransactionForUser(db, user, "sell")
 		if err != nil {
 			fmt.Fprintf(w, "Failure! " + err.Error())
 			errorEventParams := map[string]string {
@@ -179,7 +179,7 @@ func (handler *Handler) cancelSell(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		db.cancelTransaction(transactionToCancel)
+		transactionToCancel.Cancel(db)
 
 		successMsg := "SELL cancelled.\n" +
 		"symbol: " + transactionToCancel.StockSymbol +
@@ -192,7 +192,7 @@ func createSellTransaction(user *User, stockSymbol string, amountToSellInCents u
 	numStocksNeeded := stocksNeededToGetAmountInCents(amountToSellInCents, quotedPriceInCents)
 
 	// create a transaction record
-	sellTransaction := buildSellTransaction(user)
+	sellTransaction := BuildSellTransaction(user)
 	sellTransaction.StockSymbol = stockSymbol
 	sellTransaction.AmountInCents = amountToSellInCents
 	sellTransaction.QuotedStockPrice = quotedPriceInCents
@@ -232,7 +232,7 @@ func moneyInCentsForStocks(numStocks uint, stockPrice uint) uint {
 
 // Save a UserCommandLogItem for a SELL command
 func logSellCommand(stockSymbol string, user *User) {
-	commandLogItem := buildUserCommandLogItemStruct()
+	commandLogItem := BuildUserCommandLogItemStruct()
 	commandLogItem.Command = "SELL"
 	commandLogItem.Username = user.Username
 	commandLogItem.StockSymbol = stockSymbol
@@ -244,7 +244,7 @@ func logSellCommand(stockSymbol string, user *User) {
 
 // Save a UserCommandLogItem for a COMMIT_SELL command
 func logCommitSellCommand(stockSymbol string, user *User) {
-	commandLogItem := buildUserCommandLogItemStruct()
+	commandLogItem := BuildUserCommandLogItemStruct()
 	commandLogItem.Command = "COMMIT_SELL"
 	commandLogItem.Username = user.Username
 	commandLogItem.StockSymbol = stockSymbol
@@ -256,7 +256,7 @@ func logCommitSellCommand(stockSymbol string, user *User) {
 
 // Save a UserCommandLogItem for a COMMIT_SELL command
 func logCancelSellCommand(stockSymbol string, user *User) {
-	commandLogItem := buildUserCommandLogItemStruct()
+	commandLogItem := BuildUserCommandLogItemStruct()
 	commandLogItem.Command = "CANCEL_SELL"
 	commandLogItem.Username = user.Username
 	commandLogItem.StockSymbol = stockSymbol

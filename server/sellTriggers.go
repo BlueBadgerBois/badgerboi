@@ -55,7 +55,7 @@ func (handler *Handler) setSellAmount(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		sellTrigger := buildSellTrigger(&user)
+		sellTrigger := BuildSellTrigger(&user)
 		sellTrigger.StockSym = stockSymbol
 		sellTrigger.Amount = amountToSell
 		sellTrigger.NumStocks = 0 // don't set numStocks at this point

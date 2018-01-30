@@ -51,15 +51,8 @@ func (db *DB) migrate() {
 	// migrations go here
 }
 
-func (db *DB) saveLogItem(username string, jsonData string) {
-	logItem := LogItem{Username: username, Data: jsonData}
-	db.conn.NewRecord(logItem)
-	db.conn.Create(&logItem)
-}
-
 func (db *DB) getCurrentTime() time.Time {
 	currentTime := DBTime{}
 	db.conn.Raw("select now from now();").Scan(&currentTime)
 	return currentTime.Now
 }
-

@@ -14,7 +14,7 @@ type Trigger struct {
   PriceThreshold uint
 }
 
-func buildBuyTrigger(user *User) Trigger {
+func BuildBuyTrigger(user *User) Trigger {
 	buyTrigger := Trigger{
 		UserID: user.ID,
 		Type: "buy",
@@ -22,7 +22,7 @@ func buildBuyTrigger(user *User) Trigger {
   return buyTrigger
 }
 
-func buildSellTrigger(user *User) Trigger {
+func BuildSellTrigger(user *User) Trigger {
   sellTrigger := Trigger{
     UserID: user.ID,
     Type: "sell",

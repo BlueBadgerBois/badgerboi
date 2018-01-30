@@ -48,7 +48,7 @@ func (handler *Handler) add(w http.ResponseWriter, r *http.Request) {
 
 		amountInCents := stringMoneyToCents(amount)
 
-		user := db.userFromUsernameOrCreate(username)
+		user := UserFromUsernameOrCreate(db, username)
 
 		newAmount := user.CurrentMoney + amountInCents
 
@@ -86,7 +86,7 @@ func (handler *Handler) quote(w http.ResponseWriter, r *http.Request) {
 
 		responseMap := getQuoteFromServer(username, stockSymbol)
 
-		user := db.userFromUsernameOrCreate(responseMap["username"])
+		user := UserFromUsernameOrCreate(db, responseMap["username"])
 
 		logQuoteCommand(responseMap, user)
 
@@ -122,7 +122,7 @@ func (handler *Handler) dumplog(w http.ResponseWriter, r *http.Request) {
 
 // Save an ErrorEventLogItem
 func logErrorEvent(params map[string]string, user *User) {
-	errorEventLogItem := buildErrorEventLogItemStruct()
+	errorEventLogItem := BuildErrorEventLogItemStruct()
 	errorEventLogItem.Command = params["command"]
 	errorEventLogItem.Username = user.Username
 	errorEventLogItem.StockSymbol = params["stockSymbol"]
@@ -135,7 +135,7 @@ func logErrorEvent(params map[string]string, user *User) {
 
 // Save a UserCommandLogItem for an ADD command
 func logAddCommand(user *User) {
-	commandLogItem := buildUserCommandLogItemStruct()
+	commandLogItem := BuildUserCommandLogItemStruct()
 	commandLogItem.Command = "ADD"
 	commandLogItem.Username = user.Username
 	commandLogItem.StockSymbol = ""
@@ -146,7 +146,7 @@ func logAddCommand(user *User) {
 }
 
 func logAccountTransaction(user *User, action string) {
-	transactionLogItem := buildAccountTransactionLogItemStruct()
+	transactionLogItem := BuildAccountTransactionLogItemStruct()
 	transactionLogItem.Action = action
 	transactionLogItem.Username = user.Username
 	transactionLogItem.Funds = centsToDollarsString(user.CurrentMoney)
@@ -156,7 +156,7 @@ func logAccountTransaction(user *User, action string) {
 }
 
 func logSystemEvent(user *User, params map[string]string) {
-	systemEventLogItem := buildSystemEventLogItemStruct()
+	systemEventLogItem := BuildSystemEventLogItemStruct()
 	systemEventLogItem.Command = params["command"]
 	systemEventLogItem.StockSymbol = params["stockSymbol"]
 	systemEventLogItem.Filename = params["filename"]
@@ -168,7 +168,7 @@ func logSystemEvent(user *User, params map[string]string) {
 }
 
 func logSummaryCommand(user *User) {
-	commandLogItem := buildUserCommandLogItemStruct()
+	commandLogItem := BuildUserCommandLogItemStruct()
 	commandLogItem.Command = "DISPLAY_SUMMARY"
 	commandLogItem.Username = user.Username
 	commandLogItem.StockSymbol = "" // No stock symbol for a summary
@@ -198,7 +198,7 @@ func getQuoteFromServer(username string, stockSymbol string) map[string]string {
 
 // Save a QuoteServerLogItem
 func logQuoteServer(params map[string]string) {
-	quoteLogItem := buildQuoteServerLogItemStruct()
+	quoteLogItem := BuildQuoteServerLogItemStruct()
 	quoteLogItem.Price = params["price"]
 	quoteLogItem.StockSymbol = params["stockSymbol"]
 	quoteLogItem.Username = params["username"]
@@ -211,7 +211,7 @@ func logQuoteServer(params map[string]string) {
 
 // Save a UserCommandLogItem for a QUOTE command
 func logQuoteCommand(params map[string]string, user *User) {
-	commandLogItem := buildUserCommandLogItemStruct()
+	commandLogItem := BuildUserCommandLogItemStruct()
 	commandLogItem.Command = "QUOTE"
 	commandLogItem.Username = params["username"]
 	commandLogItem.StockSymbol = params["stockSymbol"]

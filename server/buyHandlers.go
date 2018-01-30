@@ -15,7 +15,7 @@ func (handler *Handler) buy(w http.ResponseWriter, r *http.Request) {
 
 		amountToBuyInCents := stringMoneyToCents(buyAmount)
 
-		user := db.userFromUsernameOrCreate(username)
+		user := UserFromUsernameOrCreate(db, username)
 
 		logBuyCommand(stockSymbol, user)
 
@@ -57,7 +57,7 @@ func (handler *Handler) commitBuy(w http.ResponseWriter, r *http.Request) {
 		r.ParseForm()
 		username := r.Form.Get("username")
 
-		user, err := db.userFromUsername(username)
+		user, err := UserFromUsername(db, username)
 		if err != nil {
 			fmt.Fprintf(w, "Failure! user does not exist!\n\n")
 			errorEventParams := map[string]string {
@@ -70,7 +70,7 @@ func (handler *Handler) commitBuy(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		transactionToCommit, err := db.newestPendingTransactionForUser(user, "buy")
+		transactionToCommit, err := NewestPendingTransactionForUser(db, user, "buy")
 		if err != nil {
 			fmt.Fprintf(w, "Failure! " + err.Error())
 			errorEventParams := map[string]string {
@@ -161,7 +161,7 @@ func (handler *Handler) cancelBuy(w http.ResponseWriter, r *http.Request) {
 		username := r.Form.Get("username")
 
 
-		user, err := db.userFromUsername(username)
+		user, err := UserFromUsername(db, username)
 		if err != nil {
 			fmt.Fprintf(w, "Failure! user does not exist!\n\n")
 			errorEventParams := map[string]string {
@@ -174,7 +174,7 @@ func (handler *Handler) cancelBuy(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		transactionToCancel, err := db.newestPendingTransactionForUser(user, "buy")
+		transactionToCancel, err := NewestPendingTransactionForUser(db, user, "buy")
 		if err != nil {
 			fmt.Fprintf(w, "Failure! " + err.Error())
 			errorEventParams := map[string]string {
@@ -205,7 +205,7 @@ func (handler *Handler) cancelBuy(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		db.cancelTransaction(transactionToCancel)
+		transactionToCancel.Cancel(db)
 
 		successMsg := "BUY cancelled.\n " +
 		"symbol: " + transactionToCancel.StockSymbol +
@@ -216,7 +216,7 @@ func (handler *Handler) cancelBuy(w http.ResponseWriter, r *http.Request) {
 
 func createBuyTransaction(user *User, stockSymbol string, amountToBuyInCents uint, quotePrice string) (error, *Transaction) {
 	// create a transaction record
-	buyTransaction := buildBuyTransaction(user)
+	buyTransaction := BuildBuyTransaction(user)
 	buyTransaction.StockSymbol = stockSymbol
 	buyTransaction.AmountInCents = amountToBuyInCents
 	buyTransaction.QuotedStockPrice = stringMoneyToCents(quotePrice)
@@ -243,7 +243,7 @@ func createBuyTransaction(user *User, stockSymbol string, amountToBuyInCents uin
 
 // Save a UserCommandLogItem for a BUY command
 func logBuyCommand(stockSymbol string, user *User) {
-	commandLogItem := buildUserCommandLogItemStruct()
+	commandLogItem := BuildUserCommandLogItemStruct()
 	commandLogItem.Command = "BUY"
 	commandLogItem.Username = user.Username
 	commandLogItem.StockSymbol = stockSymbol
@@ -255,7 +255,7 @@ func logBuyCommand(stockSymbol string, user *User) {
 
 // Save a UserCommandLogItem for a COMMIT_BUY command
 func logCommitBuyCommand(stockSymbol string, user *User) {
-	commandLogItem := buildUserCommandLogItemStruct()
+	commandLogItem := BuildUserCommandLogItemStruct()
 	commandLogItem.Command = "COMMIT_BUY"
 	commandLogItem.Username = user.Username
 	commandLogItem.StockSymbol = stockSymbol
@@ -267,7 +267,7 @@ func logCommitBuyCommand(stockSymbol string, user *User) {
 
 // Save a UserCommandLogItem for a COMMIT_BUY command
 func logCancelBuyCommand(stockSymbol string, user *User) {
-	commandLogItem := buildUserCommandLogItemStruct()
+	commandLogItem := BuildUserCommandLogItemStruct()
 	commandLogItem.Command = "CANCEL_BUY"
 	commandLogItem.Username = user.Username
 	commandLogItem.StockSymbol = stockSymbol

@@ -27,12 +27,12 @@ func (handler *Handler) setBuyAmount(w http.ResponseWriter, r *http.Request) {
 
 		amountToBuyInCents := stringMoneyToCents(buyAmount)
 
-		triggerQuery := buildBuyTrigger(&user)
+		triggerQuery := BuildBuyTrigger(&user)
 		triggerQuery.StockSym = stockSymbol
 
 		var buyTrigger Trigger
 		db.conn.FirstOrCreate(&buyTrigger, &triggerQuery)
-		
+
 		oldAmount := buyTrigger.Amount
 		newAmount := amountToBuyInCents
 
