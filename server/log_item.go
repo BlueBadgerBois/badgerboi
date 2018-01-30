@@ -207,7 +207,7 @@ func bytesToString(bytes []byte) string {
 	return string(bytes[:])
 }
 
-func saveLogItem(db *DB, username string, jsonData string) {
+func saveLogItem(db *DBW, username string, jsonData string) {
 	logItem := LogItem{Username: username, Data: jsonData}
 	db.conn.NewRecord(logItem)
 	db.conn.Create(&logItem)

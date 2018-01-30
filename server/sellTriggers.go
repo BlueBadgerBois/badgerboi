@@ -155,7 +155,7 @@ func (handler *Handler) setSellTrigger(w http.ResponseWriter, r *http.Request) {
 			// add back some stock
 			stockHolding.Number += uint(int(difference)*(-1))
 		} else {
-			if !stockHolding.sufficient(uint(difference)) {
+			if !stockHolding.Sufficient(uint(difference)) {
 				return
 			}
 			stockHolding.Number -= uint(difference)

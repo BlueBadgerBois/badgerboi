@@ -7,7 +7,7 @@ import (
 	"github.com/kabukky/httpscerts"
 )
 
-var db = &DB{} // this is global so everything can see it
+var db = &DBW{} // this is global so everything can see it
 var handler = Handler{}
 
 const WEB_ROLE = "web"

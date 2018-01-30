@@ -12,10 +12,10 @@ type StockHolding struct {
 	Number uint // Number of the stock held by the user
 }
 
-func stockHolding(db *gorm.DB, user *User, stockSymbol string) (*StockHolding, error) {
+func buildStockHolding(db *DBW, user *User, stockSymbol string) (*StockHolding, error) {
 	holdingQuery := StockHolding{UserID: user.ID, StockSymbol: stockSymbol}
 	holding := StockHolding{}
-	notFound := db.
+	notFound := db.conn.
 	Where(holdingQuery).
 	First(&holding).
 	RecordNotFound()
@@ -28,7 +28,7 @@ func stockHolding(db *gorm.DB, user *User, stockSymbol string) (*StockHolding, e
 	return &holding, nil
 }
 
-func (holding *StockHolding) sufficient(targetNumber uint) bool {
+func (holding *StockHolding) Sufficient(targetNumber uint) bool {
 	return holding.Number >= targetNumber
 }
 

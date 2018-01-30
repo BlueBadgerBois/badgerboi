@@ -90,12 +90,13 @@ func (handler *Handler) commitSell(w http.ResponseWriter, r *http.Request) {
 		numStocksNeeded := stocksNeededToGetAmountInCents(transactionToCommit.AmountInCents,
 		transactionToCommit.QuotedStockPrice)
 
-		tx := db.conn.Begin()
-		tx.Where(&User{Username: user.Username}).First(&user) // reload user
-		userHolding, _ := stockHolding(tx, user, transactionToCommit.StockSymbol) // grab the user's current holding for the stock
+		// tx := db.conn.Begin()
+		tx := db.Begin()
+		tx.conn.Where(&User{Username: user.Username}).First(&user) // reload user
+		userHolding, _ := buildStockHolding(tx, user, transactionToCommit.StockSymbol) // grab the user's current holding for the stock
 
 		// Check if user still has enough stocks to make the sale
-		if !userHolding.sufficient(numStocksNeeded) {
+		if !userHolding.Sufficient(numStocksNeeded) {
 			tx.Rollback() // rollback immediately
 
 			errMsg := "Failure! User does not have enough stocks\n\n" +
@@ -114,12 +115,12 @@ func (handler *Handler) commitSell(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// withdraw the stocks
-		userHolding.Withdraw(tx, numStocksNeeded)
+		userHolding.Withdraw(tx.conn, numStocksNeeded)
 
 		centsToDeposit := moneyInCentsForStocks(numStocksNeeded, transactionToCommit.QuotedStockPrice)
 
 		// give user the money
-		user.DepositMoney(tx, centsToDeposit)
+		user.DepositMoney(tx.conn, centsToDeposit)
 
 		tx.Commit()
 
@@ -198,10 +199,10 @@ func createSellTransaction(user *User, stockSymbol string, amountToSellInCents u
 	sellTransaction.QuotedStockPrice = quotedPriceInCents
 	db.conn.NewRecord(sellTransaction)
 
-	userHolding, _ := stockHolding(db.conn, user, sellTransaction.StockSymbol)
+	userHolding, _ := buildStockHolding(db, user, sellTransaction.StockSymbol)
 
 	// Check if user has enough stocks to make the given amount of revenue
-	if !userHolding.sufficient(numStocksNeeded) {
+	if !userHolding.Sufficient(numStocksNeeded) {
 		errMsg := "Failure! User does not have enough stocks\n\n" +
 		"User ID: " + user.Username + "\n" +
 		"Stock Symbol: " + stockSymbol + "\n" +

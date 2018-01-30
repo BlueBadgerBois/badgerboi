@@ -100,8 +100,10 @@ func (handler *Handler) commitBuy(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		tx := db.conn.Begin()
-		tx.Where(&User{Username: user.Username}).First(&user) // reload user
+		tx := db.Begin()
+
+		// UserFromUsername(tx, user.Username) // reload user
+		tx.conn.Where(&User{Username: user.Username}).First(&user) // reload user
 
 		numStocksToBuy, leftOverCents := convertMoneyToStock(transactionToCommit.AmountInCents,
 		transactionToCommit.QuotedStockPrice)
@@ -134,19 +136,19 @@ func (handler *Handler) commitBuy(w http.ResponseWriter, r *http.Request) {
 			UserID: user.ID,
 			StockSymbol: transactionToCommit.StockSymbol,
 		}
-		tx.FirstOrCreate(&stockHolding, &holdingQuery)
+		tx.conn.FirstOrCreate(&stockHolding, &holdingQuery)
 
 		stockHolding.Number += numStocksToBuy
-		tx.Save(&stockHolding)
+		tx.conn.Save(&stockHolding)
 
 		// Subtract money from user's account
 		user.CurrentMoney -= moneyToWithDraw
-		tx.Save(&user)
+		tx.conn.Save(&user)
 
 		transactionToCommit.State = "complete"
-		tx.Save(&transactionToCommit)
+		tx.conn.Save(&transactionToCommit)
 
-		tx.Commit()
+		tx.conn.Commit()
 
 		fmt.Fprintf(w, "BUY committed.\n " +
 		"symbol: " + transactionToCommit.StockSymbol +
