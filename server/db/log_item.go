@@ -59,14 +59,14 @@ func BuildUserCommandLogItemStruct() UserCommandLogItem {
 		return logItem
 }
 
-func (logItem *UserCommandLogItem) SaveRecord(db *DBW, username string) {
+func (logItem *UserCommandLogItem) SaveRecord(dbw *DBW, username string) {
 	jsonBytes, err := json.Marshal(logItem)
 
 	if err != nil { log.Fatal("Unable to convert struct %s to json", logItem) }
 
 	jsonString := bytesToString(jsonBytes)
 
-	saveLogItem(db, username, jsonString)
+	saveLogItem(dbw, username, jsonString)
 }
 
 type QuoteServerLogItem struct {
@@ -89,14 +89,14 @@ func BuildQuoteServerLogItemStruct() QuoteServerLogItem {
 	return logItem
 }
 
-func (logItem *QuoteServerLogItem) SaveRecord(db *DBW, username string) {
+func (logItem *QuoteServerLogItem) SaveRecord(dbw *DBW, username string) {
 	jsonBytes, err := json.Marshal(logItem)
 
 	if err != nil { log.Fatal("Unable to convert struct %s to json", logItem) }
 
 	jsonString := bytesToString(jsonBytes)
 
-	saveLogItem(db, username, jsonString)
+	saveLogItem(dbw, username, jsonString)
 }
 
 
@@ -118,14 +118,14 @@ func BuildAccountTransactionLogItemStruct() AccountTransactionLogItem {
 	return logItem
 }
 
-func (logItem *AccountTransactionLogItem) SaveRecord(db *DBW, username string) {
+func (logItem *AccountTransactionLogItem) SaveRecord(dbw *DBW, username string) {
 	jsonBytes, err := json.Marshal(logItem)
 
 	if err != nil { log.Fatal("Unable to convert struct %s to json", logItem) }
 
 	jsonString := bytesToString(jsonBytes)
 
-	saveLogItem(db, username, jsonString)
+	saveLogItem(dbw, username, jsonString)
 }
 
 type SystemEventLogItem struct {
@@ -148,14 +148,14 @@ func BuildSystemEventLogItemStruct() SystemEventLogItem {
 	return logItem
 }
 
-func (logItem *SystemEventLogItem) SaveRecord(db *DBW, username string) {
+func (logItem *SystemEventLogItem) SaveRecord(dbw *DBW, username string) {
 	jsonBytes, err := json.Marshal(logItem)
 
 	if err != nil { log.Fatal("Unable to convert struct %s to json", logItem) }
 
 	jsonString := bytesToString(jsonBytes)
 
-	saveLogItem(db, username, jsonString)
+	saveLogItem(dbw, username, jsonString)
 }
 
 type ErrorEventLogItem struct {
@@ -180,14 +180,14 @@ func BuildErrorEventLogItemStruct() ErrorEventLogItem {
 	return logItem
 }
 
-func (logItem *ErrorEventLogItem) SaveRecord(db *DBW, username string) {
+func (logItem *ErrorEventLogItem) SaveRecord(dbw *DBW, username string) {
 	jsonBytes, err := json.Marshal(logItem)
 
 	if err != nil { log.Fatal("Unable to convert struct %s to json", logItem) }
 
 	jsonString := bytesToString(jsonBytes)
 
-	saveLogItem(db, username, jsonString)
+	saveLogItem(dbw, username, jsonString)
 }
 
 type DebugLogItem struct {
@@ -207,8 +207,8 @@ func bytesToString(bytes []byte) string {
 	return string(bytes[:])
 }
 
-func saveLogItem(db *DBW, username string, jsonData string) {
+func saveLogItem(dbw *DBW, username string, jsonData string) {
 	logItem := LogItem{Username: username, Data: jsonData}
-	db.Conn.NewRecord(logItem)
-	db.Conn.Create(&logItem)
+	dbw.Conn.NewRecord(logItem)
+	dbw.Conn.Create(&logItem)
 }

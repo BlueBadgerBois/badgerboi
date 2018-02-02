@@ -12,10 +12,10 @@ type StockHolding struct {
 	Number uint // Number of the stock held by the user
 }
 
-func BuildStockHolding(db *DBW, user *User, stockSymbol string) (*StockHolding, error) {
+func BuildStockHolding(dbw *DBW, user *User, stockSymbol string) (*StockHolding, error) {
 	holdingQuery := StockHolding{UserID: user.ID, StockSymbol: stockSymbol}
 	holding := StockHolding{}
-	notFound := db.Conn.
+	notFound := dbw.Conn.
 	Where(holdingQuery).
 	First(&holding).
 	RecordNotFound()
@@ -33,7 +33,7 @@ func (holding *StockHolding) Sufficient(targetNumber uint) bool {
 }
 
 // assumes you won't withdraw over the limit
-func (holding *StockHolding) Withdraw(db *DBW, numToWithdraw uint) {
+func (holding *StockHolding) Withdraw(dbw *DBW, numToWithdraw uint) {
 	holding.Number -= numToWithdraw
-	db.Conn.Save(holding)
+	dbw.Conn.Save(holding)
 }

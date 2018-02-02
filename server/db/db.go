@@ -15,24 +15,24 @@ type DBTime struct {
 	Now time.Time
 }
 
-func (db *DBW) Init() {
-	db.connectWithRetries()
-	db.autoMigrate()
-	db.migrate()
+func (dbw *DBW) Init() {
+	dbw.connectWithRetries()
+	dbw.autoMigrate()
+	dbw.migrate()
 }
 
-func (db *DBW) connectWithRetries() {
+func (dbw *DBW) connectWithRetries() {
 	log.Println("Connecting to postgres.")
 	conn, err := gorm.Open("postgres", "host=db user=badgerboi dbname=badgerboi sslmode=disable password=badgerboi")
-	db.Conn = conn
+	dbw.Conn = conn
 	if err != nil {
 		log.Println(err)
 	}
 	log.Println("Connected to postgres.")
 }
 
-func (db *DBW) Begin() *DBW {
-	tx := db.Conn.Begin()
+func (dbw *DBW) Begin() *DBW {
+	tx := dbw.Conn.Begin()
 	return &DBW{ Conn: tx }
 }
 
@@ -45,27 +45,27 @@ func (tx *DBW) Rollback() {
 }
 
 // defer this
-func (db *DBW) CleanUp() {
-	db.Conn.Close()
+func (dbw *DBW) CleanUp() {
+	dbw.Conn.Close()
 }
 
 // automatically run any migrations that are needed (doesn't do all of them. See docs.
-func (db *DBW) autoMigrate() {
+func (dbw *DBW) autoMigrate() {
 	log.Println("Auto-migrating.")
-	db.Conn.AutoMigrate(&User{})
-	db.Conn.AutoMigrate(&Transaction{})
-	db.Conn.AutoMigrate(&StockHolding{})
-	db.Conn.AutoMigrate(&LogItem{})
-	db.Conn.AutoMigrate(&Trigger{})
+	dbw.Conn.AutoMigrate(&User{})
+	dbw.Conn.AutoMigrate(&Transaction{})
+	dbw.Conn.AutoMigrate(&StockHolding{})
+	dbw.Conn.AutoMigrate(&LogItem{})
+	dbw.Conn.AutoMigrate(&Trigger{})
 	log.Println("Finished auto-migrating.")
 }
 
-func (db *DBW) migrate() {
+func (dbw *DBW) migrate() {
 	// migrations go here
 }
 
-func (db *DBW) GetCurrentTime() time.Time {
+func (dbw *DBW) GetCurrentTime() time.Time {
 	currentTime := DBTime{}
-	db.Conn.Raw("select now from now();").Scan(&currentTime)
+	dbw.Conn.Raw("select now from now();").Scan(&currentTime)
 	return currentTime.Now
 }

@@ -36,15 +36,15 @@ func BuildSellTransaction(user *User) *Transaction {
 	return &sellTransaction
 }
 
-func (transaction *Transaction) Cancel(db *DBW) {
+func (transaction *Transaction) Cancel(dbw *DBW) {
 	transaction.State = "cancelled"
-	db.Conn.Save(transaction)
+	dbw.Conn.Save(transaction)
 }
 
-func NewestPendingTransactionForUser(db *DBW, user *User, txType string) (*Transaction, error) {
+func NewestPendingTransactionForUser(dbw *DBW, user *User, txType string) (*Transaction, error) {
 	transaction := Transaction{}
 
-	notFound := db.Conn.
+	notFound := dbw.Conn.
 	Order("created_at desc").
 	Where("user_id = ?", user.ID).
 	Where("type = ?", txType).
