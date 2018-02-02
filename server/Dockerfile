@@ -7,7 +7,6 @@ WORKDIR /go/src/app
 COPY . .
 
 RUN go-wrapper download   # "go get -d -v ./..."
-# RUN go-wrapper install    # "go install -v ./..."
 RUN go build
 RUN go get github.com/pilu/fresh
 
