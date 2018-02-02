@@ -9,10 +9,10 @@ import (
 	"strings"
 	"net/http"
 	"net/url"
-	"log"
 )
 
-const serverUrl = "web:8082"
+const serverUrl = "http://web:8082"
+const defaultTestFile = "1userWorkLoad.txt"
 
 /*
 * Returns a two dimentional array, outer array contains the users,
@@ -298,15 +298,18 @@ func sendRequest (req *http.Request) {
 }
 
 func main (){
-	log.Println("Hello")
+var testFile string
+
 	if len(os.Args) < 2 {
-		log.Println("Filename not provided")
-		return
+		log.Println("Default file used: " + defaultTestFile)
+		testFile = defaultTestFile
+	} else {
+		testFile = os.Args[1]
 	}
 
-	fileData, err := ioutil.ReadFile(os.Args[1])
+	fileData, err := ioutil.ReadFile(testFile)
 	if err != nil {
-		log.Println("Error reading file ", os.Args[1])
+		log.Println("Error reading file ", testFile)
 		panic(err)
 	}
 
