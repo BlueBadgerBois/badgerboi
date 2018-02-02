@@ -1,6 +1,7 @@
 package main
 
 import (
+	"app/db"
 	"errors"
 	"fmt"
 	"math"
@@ -17,7 +18,7 @@ func (handler *Handler) sell(w http.ResponseWriter, r *http.Request) {
 
 		amountToSellInCents := stringMoneyToCents(sellAmount)
 
-		user := UserFromUsernameOrCreate(db, username)
+		user := db.UserFromUsernameOrCreate(dbw, username)
 
 		logSellCommand(stockSymbol, user)
 
@@ -45,7 +46,7 @@ func (handler *Handler) commitSell(w http.ResponseWriter, r *http.Request) {
 		r.ParseForm()
 		username := r.Form.Get("username")
 
-		user, err := UserFromUsername(db, username)
+		user, err := db.UserFromUsername(dbw, username)
 		if err != nil {
 			fmt.Fprintf(w, "Failure! user does not exist!\n\n")
 			errorEventParams := map[string]string {
@@ -57,7 +58,7 @@ func (handler *Handler) commitSell(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		transactionToCommit, err := NewestPendingTransactionForUser(db, user, "sell")
+		transactionToCommit, err := db.NewestPendingTransactionForUser(dbw, user, "sell")
 		if err != nil { // If no transaction can be found
 			fmt.Fprintf(w, "Failure! " + err.Error())
 			errorEventParams := map[string]string {
@@ -73,7 +74,7 @@ func (handler *Handler) commitSell(w http.ResponseWriter, r *http.Request) {
 
 		// Check to make sure the transaction is not stale
 		// later we need to make the job server just update the quote price
-		currentTime := db.getCurrentTime()
+		currentTime := dbw.GetCurrentTime()
 		timeDifference := currentTime.Sub(transactionToCommit.CreatedAt)
 		if timeDifference.Seconds() > MAX_TRANSACTION_VALIDITY_SECS {
 			errMsg :=  "Failure! Most recent sell transaction is more than 60 seconds old."
@@ -90,10 +91,10 @@ func (handler *Handler) commitSell(w http.ResponseWriter, r *http.Request) {
 		numStocksNeeded := stocksNeededToGetAmountInCents(transactionToCommit.AmountInCents,
 		transactionToCommit.QuotedStockPrice)
 
-		// tx := db.conn.Begin()
-		tx := db.Begin()
-		tx.conn.Where(&User{Username: user.Username}).First(&user) // reload user
-		userHolding, _ := BuildStockHolding(tx, user, transactionToCommit.StockSymbol) // grab the user's current holding for the stock
+		// tx := dbw.Conn.Begin()
+		tx := dbw.Begin()
+		tx.Conn.Where(&db.User{Username: user.Username}).First(&user) // reload user
+		userHolding, _ := db.BuildStockHolding(tx, user, transactionToCommit.StockSymbol) // grab the user's current holding for the stock
 
 		// Check if user still has enough stocks to make the sale
 		if !userHolding.Sufficient(numStocksNeeded) {
@@ -137,7 +138,7 @@ func (handler *Handler) cancelSell(w http.ResponseWriter, r *http.Request) {
 		r.ParseForm()
 		username := r.Form.Get("username")
 
-		user, err := UserFromUsername(db, username)
+		user, err := db.UserFromUsername(dbw, username)
 		if err != nil {
 			fmt.Fprintf(w, "Failure! user does not exist!\n\n")
 			errorEventParams := map[string]string {
@@ -149,7 +150,7 @@ func (handler *Handler) cancelSell(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		transactionToCancel, err := NewestPendingTransactionForUser(db, user, "sell")
+		transactionToCancel, err := db.NewestPendingTransactionForUser(dbw, user, "sell")
 		if err != nil {
 			fmt.Fprintf(w, "Failure! " + err.Error())
 			errorEventParams := map[string]string {
@@ -165,7 +166,7 @@ func (handler *Handler) cancelSell(w http.ResponseWriter, r *http.Request) {
 		logCancelSellCommand(transactionToCancel.StockSymbol, user)
 
 		// later we need to make the job server just update the quote price
-		currentTime := db.getCurrentTime()
+		currentTime := dbw.GetCurrentTime()
 		timeDifference := currentTime.Sub(transactionToCancel.CreatedAt)
 		if timeDifference.Seconds() > MAX_TRANSACTION_VALIDITY_SECS {
 			errMsg := "Failure! Most recent SELL transaction is more than 60 seconds old."
@@ -180,7 +181,7 @@ func (handler *Handler) cancelSell(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		transactionToCancel.Cancel(db)
+		transactionToCancel.Cancel(dbw)
 
 		successMsg := "SELL cancelled.\n" +
 		"symbol: " + transactionToCancel.StockSymbol +
@@ -189,17 +190,17 @@ func (handler *Handler) cancelSell(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func createSellTransaction(user *User, stockSymbol string, amountToSellInCents uint, quotedPriceInCents uint) (error, *Transaction) {
+func createSellTransaction(user *db.User, stockSymbol string, amountToSellInCents uint, quotedPriceInCents uint) (error, *db.Transaction) {
 	numStocksNeeded := stocksNeededToGetAmountInCents(amountToSellInCents, quotedPriceInCents)
 
 	// create a transaction record
-	sellTransaction := BuildSellTransaction(user)
+	sellTransaction := db.BuildSellTransaction(user)
 	sellTransaction.StockSymbol = stockSymbol
 	sellTransaction.AmountInCents = amountToSellInCents
 	sellTransaction.QuotedStockPrice = quotedPriceInCents
-	db.conn.NewRecord(sellTransaction)
+	dbw.Conn.NewRecord(sellTransaction)
 
-	userHolding, _ := BuildStockHolding(db, user, sellTransaction.StockSymbol)
+	userHolding, _ := db.BuildStockHolding(dbw, user, sellTransaction.StockSymbol)
 
 	// Check if user has enough stocks to make the given amount of revenue
 	if !userHolding.Sufficient(numStocksNeeded) {
@@ -217,7 +218,7 @@ func createSellTransaction(user *User, stockSymbol string, amountToSellInCents u
 
 		return errors.New(errMsg), sellTransaction
 	}
-	db.conn.Save(sellTransaction)
+	dbw.Conn.Save(sellTransaction)
 	return nil, sellTransaction
 }
 
@@ -232,37 +233,37 @@ func moneyInCentsForStocks(numStocks uint, stockPrice uint) uint {
 
 
 // Save a UserCommandLogItem for a SELL command
-func logSellCommand(stockSymbol string, user *User) {
-	commandLogItem := BuildUserCommandLogItemStruct()
+func logSellCommand(stockSymbol string, user *db.User) {
+	commandLogItem := db.BuildUserCommandLogItemStruct()
 	commandLogItem.Command = "SELL"
 	commandLogItem.Username = user.Username
 	commandLogItem.StockSymbol = stockSymbol
 	commandLogItem.Funds = centsToDollarsString(user.CurrentMoney)
 	username := user.Username
 
-	commandLogItem.SaveRecord(username)
+	commandLogItem.SaveRecord(dbw, username)
 }
 
 // Save a UserCommandLogItem for a COMMIT_SELL command
-func logCommitSellCommand(stockSymbol string, user *User) {
-	commandLogItem := BuildUserCommandLogItemStruct()
+func logCommitSellCommand(stockSymbol string, user *db.User) {
+	commandLogItem := db.BuildUserCommandLogItemStruct()
 	commandLogItem.Command = "COMMIT_SELL"
 	commandLogItem.Username = user.Username
 	commandLogItem.StockSymbol = stockSymbol
 	commandLogItem.Funds = centsToDollarsString(user.CurrentMoney)
 	username := user.Username
 
-	commandLogItem.SaveRecord(username)
+	commandLogItem.SaveRecord(dbw, username)
 }
 
 // Save a UserCommandLogItem for a COMMIT_SELL command
-func logCancelSellCommand(stockSymbol string, user *User) {
-	commandLogItem := BuildUserCommandLogItemStruct()
+func logCancelSellCommand(stockSymbol string, user *db.User) {
+	commandLogItem := db.BuildUserCommandLogItemStruct()
 	commandLogItem.Command = "CANCEL_SELL"
 	commandLogItem.Username = user.Username
 	commandLogItem.StockSymbol = stockSymbol
 	commandLogItem.Funds = centsToDollarsString(user.CurrentMoney)
 	username := user.Username
 
-	commandLogItem.SaveRecord(username)
+	commandLogItem.SaveRecord(dbw, username)
 }

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"app/db"
 	"log"
 	"time"
 )
@@ -15,11 +16,11 @@ func runJobServer() {
 }
 
 func checkTriggers() {
-	var triggers []Trigger
-	db.conn.Find(&triggers)
+	var triggers []db.Trigger
+	dbw.Conn.Find(&triggers)
 	for _, trig := range triggers {
-		var user User
-		db.conn.Where("ID = ?", trig.UserID).First(&user)
+		var user db.User
+		dbw.Conn.Where("ID = ?", trig.UserID).First(&user)
 
 		responseMap := getQuoteFromServer(user.Username, trig.StockSym)
 
@@ -28,14 +29,14 @@ func checkTriggers() {
 
 			amntToBuy, leftover := convertMoneyToStock(trig.Amount, quotePrice)
 
-			stockHolding := StockHolding{
+			stockHolding := db.StockHolding{
 				UserID: user.ID,
 				StockSymbol: trig.StockSym,
 			}
 			user.CurrentMoney = user.CurrentMoney + leftover
 
 			// ======== START TRANSACTION ========
-			tx := db.conn.Begin()
+			tx := dbw.Conn.Begin()
 
 			if err := tx.FirstOrCreate(&stockHolding).Error; err != nil {
 				tx.Rollback()
@@ -67,7 +68,7 @@ func checkTriggers() {
 			user.CurrentMoney += (trig.NumStocks * quotePrice)
 
 			// ======== START TRANSACTION ========
-			tx := db.conn.Begin()
+			tx := dbw.Conn.Begin()
 
 			if err := tx.Save(&user).Error; err != nil {
 				tx.Rollback()

@@ -1,6 +1,7 @@
 package main
 
 import(
+	"app/db"
 	"fmt"
 	"math"
 	"net/http"
@@ -27,14 +28,14 @@ func (handler *Handler) setSellAmount(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// get stockHolding for this stock from user
-		s := StockHolding{
+		s := db.StockHolding{
 			UserID: user.ID,
 			StockSymbol: stockSymbol,
 		}
-		var stockHolding StockHolding
+		var stockHolding db.StockHolding
 
 		// check that user has the stock holding...
-		if db.conn.First(&stockHolding, &s).RecordNotFound() {
+		if dbw.Conn.First(&stockHolding, &s).RecordNotFound() {
 			fmt.Fprintf(w,
 				"Stock holding not found...")
 			return
@@ -55,12 +56,12 @@ func (handler *Handler) setSellAmount(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		sellTrigger := BuildSellTrigger(&user)
+		sellTrigger := db.BuildSellTrigger(&user)
 		sellTrigger.StockSym = stockSymbol
 		sellTrigger.Amount = amountToSell
 		sellTrigger.NumStocks = 0 // don't set numStocks at this point
 		sellTrigger.PriceThreshold = 0
-		db.conn.Create(&sellTrigger)
+		dbw.Conn.Create(&sellTrigger)
 
 		fmt.Fprintf(w,
 			"Sell action was successfully created!\n\n" +
@@ -81,23 +82,23 @@ func (handler *Handler) cancelSetSell(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		t := Trigger{UserID: user.ID, StockSym: stockSymbol}
-		var trig Trigger
-		db.conn.First(&trig, &t)
+		t := db.Trigger{UserID: user.ID, StockSym: stockSymbol}
+		var trig db.Trigger
+		dbw.Conn.First(&trig, &t)
 
 		// find the stock holding associated with this
-		s := StockHolding{
+		s := db.StockHolding{
 			UserID: user.ID,
 			StockSymbol: stockSymbol,
 		}
-		var stockHolding StockHolding
-		db.conn.First(&stockHolding, &s)
+		var stockHolding db.StockHolding
+		dbw.Conn.First(&stockHolding, &s)
 
 		// return the number of stocks we witheld
 		stockHolding.Number += trig.NumStocks
 
 		// ======= START TRANSACTION =======
-		tx := db.conn.Begin()
+		tx := dbw.Conn.Begin()
 
 		if err := tx.Save(&stockHolding).Error; err != nil {
 			tx.Rollback()
@@ -131,24 +132,24 @@ func (handler *Handler) setSellTrigger(w http.ResponseWriter, r *http.Request) {
 
 		thresholdInCents := stringMoneyToCents(threshold);
 
-		t := Trigger {
+		t := db.Trigger {
 			UserID: user.ID,
 			StockSym: stockSymbol,
 			Type: "sell",
 		}
-		var trig Trigger
-		db.conn.First(&trig, &t)
+		var trig db.Trigger
+		dbw.Conn.First(&trig, &t)
 
 		// how much stock do we need to hit trigger amount?
 		numStocks := uint(math.Ceil(float64(trig.Amount)/float64(thresholdInCents)))
 
 		// get the stock holding
-		s := StockHolding{
+		s := db.StockHolding{
 			UserID: user.ID,
 			StockSymbol: stockSymbol,
 		}
-		var stockHolding StockHolding
-		db.conn.First(&stockHolding, &s)
+		var stockHolding db.StockHolding
+		dbw.Conn.First(&stockHolding, &s)
 
 		difference := int(stockHolding.Number)-int(numStocks)
 		if difference < 0 {
@@ -161,11 +162,11 @@ func (handler *Handler) setSellTrigger(w http.ResponseWriter, r *http.Request) {
 			stockHolding.Number -= uint(difference)
 		}
 
-		db.conn.Save(&stockHolding)
+		dbw.Conn.Save(&stockHolding)
 
 		// 6. Update the trigger to hold the number of stocks and set the threshold
 		trig.PriceThreshold = thresholdInCents
 		trig.NumStocks = numStocks
-		db.conn.Save(&trig)
+		dbw.Conn.Save(&trig)
 	}
 }

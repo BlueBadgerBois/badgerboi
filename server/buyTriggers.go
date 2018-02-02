@@ -1,6 +1,7 @@
 package main
 
 import(
+	"app/db"
 	"fmt"
 	"log"
 	"net/http"
@@ -27,11 +28,11 @@ func (handler *Handler) setBuyAmount(w http.ResponseWriter, r *http.Request) {
 
 		amountToBuyInCents := stringMoneyToCents(buyAmount)
 
-		triggerQuery := BuildBuyTrigger(&user)
+		triggerQuery := db.BuildBuyTrigger(&user)
 		triggerQuery.StockSym = stockSymbol
 
-		var buyTrigger Trigger
-		db.conn.FirstOrCreate(&buyTrigger, &triggerQuery)
+		var buyTrigger db.Trigger
+		dbw.Conn.FirstOrCreate(&buyTrigger, &triggerQuery)
 
 		oldAmount := buyTrigger.Amount
 		newAmount := amountToBuyInCents
@@ -58,7 +59,7 @@ func (handler *Handler) setBuyAmount(w http.ResponseWriter, r *http.Request) {
 		buyTrigger.Amount = uint(amountToBuyInCents)
 
 		// ====== START TRANSACTION ======
-		tx := db.conn.Begin()
+		tx := dbw.Conn.Begin()
 
 		if err := tx.Save(&user).Error; err != nil {
 			tx.Rollback()
@@ -92,13 +93,13 @@ func (handler *Handler) cancelSetBuy(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		t := Trigger{
+		t := db.Trigger{
 			UserID: user.ID,
 			StockSym: stockSymbol,
 		}
 
-		var trig Trigger;
-		if db.conn.First(&trig, &t).RecordNotFound() {
+		var trig db.Trigger;
+		if dbw.Conn.First(&trig, &t).RecordNotFound() {
 			fmt.Fprintf(w,
 				"The trigger doesn't exist")
 			return
@@ -107,7 +108,7 @@ func (handler *Handler) cancelSetBuy(w http.ResponseWriter, r *http.Request) {
 		user.CurrentMoney = user.CurrentMoney + trig.Amount
 
 		// ======= START TRANSACTION =======
-		tx := db.conn.Begin()
+		tx := dbw.Conn.Begin()
 
 		if err := tx.Save(&user).Error; err != nil {
 			tx.Rollback()
@@ -141,16 +142,16 @@ func (handler *Handler) setBuyTrigger(w http.ResponseWriter, r *http.Request) {
 
 		thresholdInCents := stringMoneyToCents(threshold);
 
-		t := Trigger {
+		t := db.Trigger {
 			UserID: user.ID,
 			StockSym: stockSymbol,
 			Type: "buy",
 		}
-		var trig Trigger
-		db.conn.First(&trig, &t)
+		var trig db.Trigger
+		dbw.Conn.First(&trig, &t)
 
 		trig.PriceThreshold = thresholdInCents
 
-		db.conn.Save(&trig)
+		dbw.Conn.Save(&trig)
 	}
 }

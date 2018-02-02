@@ -1,22 +1,23 @@
 package main
 
 import (
+	"app/db"
 	"log"
 	"net/http"
 	"os"
 	"github.com/kabukky/httpscerts"
 )
 
-var db = &DBW{} // this is global so everything can see it
+var dbw = &db.DBW{} // this is global so everything can see it
 var handler = Handler{}
 
 const WEB_ROLE = "web"
 const JOB_ROLE = "job"
 
 func main() {
-	// connect to db
-	db.init()
-	defer db.cleanUp()
+	//.Connect to db
+	dbw.Init()
+	defer dbw.CleanUp()
 
 	serverRole := getServerRole();
 

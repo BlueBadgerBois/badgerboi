@@ -1,6 +1,7 @@
 package main
 
 import (
+	"app/db"
 	"bytes"
 	"bufio"
 	"errors"
@@ -23,10 +24,10 @@ func (handler *Handler) summary(w http.ResponseWriter, r *http.Request) {
 		r.ParseForm()
 		username := r.Form.Get("username")
 
-		u := User{Username: username}
+		u := db.User{Username: username}
 
-		var user User
-		if db.conn.First(&user, &u).RecordNotFound() {
+		var user db.User
+		if dbw.Conn.First(&user, &u).RecordNotFound() {
 			fmt.Fprintf(w, "This user doesn't exist!")
 			return
 		}
@@ -48,12 +49,12 @@ func (handler *Handler) add(w http.ResponseWriter, r *http.Request) {
 
 		amountInCents := stringMoneyToCents(amount)
 
-		user := UserFromUsernameOrCreate(db, username)
+		user := db.UserFromUsernameOrCreate(dbw, username)
 
 		newAmount := user.CurrentMoney + amountInCents
 
 		user.CurrentMoney = newAmount
-		db.conn.Save(&user)
+		dbw.Conn.Save(&user)
 
 		logAddCommand(user)
 		logAccountTransaction(user, "add")
@@ -86,7 +87,7 @@ func (handler *Handler) quote(w http.ResponseWriter, r *http.Request) {
 
 		responseMap := getQuoteFromServer(username, stockSymbol)
 
-		user := UserFromUsernameOrCreate(db, responseMap["username"])
+		user := db.UserFromUsernameOrCreate(dbw, responseMap["username"])
 
 		logQuoteCommand(responseMap, user)
 
@@ -100,14 +101,14 @@ func (handler *Handler) dumplog(w http.ResponseWriter, r *http.Request) {
 		username := r.Form.Get("username")
 		outfile := r.Form.Get("outfile")
 
-		u := LogItem{Username: username}
+		u := db.LogItem{Username: username}
 
-		var log_items []LogItem
+		var log_items []db.LogItem
 
 		if username == "admin" {
-			db.conn.Find(&log_items)
+			dbw.Conn.Find(&log_items)
 		} else {
-			db.conn.Where(&u).Find(&log_items)
+			dbw.Conn.Where(&u).Find(&log_items)
 		}
 
 		xmlLog := writeLogsToFile(outfile, log_items)
@@ -121,8 +122,8 @@ func (handler *Handler) dumplog(w http.ResponseWriter, r *http.Request) {
 }
 
 // Save an ErrorEventLogItem
-func logErrorEvent(params map[string]string, user *User) {
-	errorEventLogItem := BuildErrorEventLogItemStruct()
+func logErrorEvent(params map[string]string, user *db.User) {
+	errorEventLogItem := db.BuildErrorEventLogItemStruct()
 	errorEventLogItem.Command = params["command"]
 	errorEventLogItem.Username = user.Username
 	errorEventLogItem.StockSymbol = params["stockSymbol"]
@@ -130,33 +131,33 @@ func logErrorEvent(params map[string]string, user *User) {
 	errorEventLogItem.ErrorMessage = params["errorMessage"]
 	username := user.Username
 
-	errorEventLogItem.SaveRecord(username)
+	errorEventLogItem.SaveRecord(dbw, username)
 }
 
 // Save a UserCommandLogItem for an ADD command
-func logAddCommand(user *User) {
-	commandLogItem := BuildUserCommandLogItemStruct()
+func logAddCommand(user *db.User) {
+	commandLogItem := db.BuildUserCommandLogItemStruct()
 	commandLogItem.Command = "ADD"
 	commandLogItem.Username = user.Username
 	commandLogItem.StockSymbol = ""
 	commandLogItem.Funds = centsToDollarsString(user.CurrentMoney)
 	username := user.Username
 
-	commandLogItem.SaveRecord(username)
+	commandLogItem.SaveRecord(dbw, username)
 }
 
-func logAccountTransaction(user *User, action string) {
-	transactionLogItem := BuildAccountTransactionLogItemStruct()
+func logAccountTransaction(user *db.User, action string) {
+	transactionLogItem := db.BuildAccountTransactionLogItemStruct()
 	transactionLogItem.Action = action
 	transactionLogItem.Username = user.Username
 	transactionLogItem.Funds = centsToDollarsString(user.CurrentMoney)
 	username := user.Username
 
-	transactionLogItem.SaveRecord(username)
+	transactionLogItem.SaveRecord(dbw, username)
 }
 
-func logSystemEvent(user *User, params map[string]string) {
-	systemEventLogItem := BuildSystemEventLogItemStruct()
+func logSystemEvent(user *db.User, params map[string]string) {
+	systemEventLogItem := db.BuildSystemEventLogItemStruct()
 	systemEventLogItem.Command = params["command"]
 	systemEventLogItem.StockSymbol = params["stockSymbol"]
 	systemEventLogItem.Filename = params["filename"]
@@ -164,18 +165,18 @@ func logSystemEvent(user *User, params map[string]string) {
 	systemEventLogItem.Funds = centsToDollarsString(user.CurrentMoney)
 	username := user.Username
 
-	systemEventLogItem.SaveRecord(username)
+	systemEventLogItem.SaveRecord(dbw, username)
 }
 
-func logSummaryCommand(user *User) {
-	commandLogItem := BuildUserCommandLogItemStruct()
+func logSummaryCommand(user *db.User) {
+	commandLogItem := db.BuildUserCommandLogItemStruct()
 	commandLogItem.Command = "DISPLAY_SUMMARY"
 	commandLogItem.Username = user.Username
 	commandLogItem.StockSymbol = "" // No stock symbol for a summary
 	commandLogItem.Funds = centsToDollarsString(user.CurrentMoney)
 	username := user.Username
 
-	commandLogItem.SaveRecord(username)
+	commandLogItem.SaveRecord(dbw, username)
 }
 
 // Fetch a quote from the quote server and log it
@@ -198,7 +199,7 @@ func getQuoteFromServer(username string, stockSymbol string) map[string]string {
 
 // Save a QuoteServerLogItem
 func logQuoteServer(params map[string]string) {
-	quoteLogItem := BuildQuoteServerLogItemStruct()
+	quoteLogItem := db.BuildQuoteServerLogItemStruct()
 	quoteLogItem.Price = params["price"]
 	quoteLogItem.StockSymbol = params["stockSymbol"]
 	quoteLogItem.Username = params["username"]
@@ -206,19 +207,19 @@ func logQuoteServer(params map[string]string) {
 	quoteLogItem.Cryptokey = params["cryptokey"]
 	username := params["username"]
 
-	quoteLogItem.SaveRecord(username)
+	quoteLogItem.SaveRecord(dbw, username)
 }
 
 // Save a UserCommandLogItem for a QUOTE command
-func logQuoteCommand(params map[string]string, user *User) {
-	commandLogItem := BuildUserCommandLogItemStruct()
+func logQuoteCommand(params map[string]string, user *db.User) {
+	commandLogItem := db.BuildUserCommandLogItemStruct()
 	commandLogItem.Command = "QUOTE"
 	commandLogItem.Username = params["username"]
 	commandLogItem.StockSymbol = params["stockSymbol"]
 	commandLogItem.Funds = centsToDollarsString(user.CurrentMoney)
 	username := params["username"]
 
-	commandLogItem.SaveRecord(username)
+	commandLogItem.SaveRecord(dbw, username)
 }
 
 func quoteResponseToMap(message string) map[string]string {
@@ -242,10 +243,10 @@ func stringMoneyToCents(amount string) uint { // this needs to be fixed to handl
 	return uint(stringAmountCents)
 }
 
-func authUser(uname string) (User, error) {
-	u := User{Username: uname}
-	var user User
-	if db.conn.First(&user, &u).RecordNotFound() {
+func authUser(uname string) (db.User, error) {
+	u := db.User{Username: uname}
+	var user db.User
+	if dbw.Conn.First(&user, &u).RecordNotFound() {
 		return user, errors.New("User not found!")
 	}
 	return user, nil
@@ -284,7 +285,7 @@ func anyStocksCanBeBought(amountToBuyInCents uint, quotedPriceInCents uint) bool
 	return numStocksToBuy > 0
 }
 
-func writeLogsToFile(outfile string, log_items []LogItem) string{
+func writeLogsToFile(outfile string, log_items []db.LogItem) string{
 	var logFileXML bytes.Buffer 
 	logFileXML.WriteString("<?xml version=\"1.0\"?>\n")
 	logFileXML.WriteString("<log>\n")
