@@ -115,7 +115,7 @@ func (handler *Handler) dumplog(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, 
 			"Username: " + username + "\n" +
 			"Outfile: " + outfile + "\n" +
-			"Logfile contents: ")
+			"Logfile contents:\n")
 			fmt.Fprintf(w, xmlLog)
 	}
 }
@@ -302,7 +302,7 @@ func writeLogsToFile(outfile string, log_items []LogItem) string{
 
 		logFileXML.WriteString("\t<" + logType[1] + ">\n")
 
-		for i := 0; i < len(keyValues); i++ {
+		for i := 1; i < len(keyValues); i++ {
 			attribute := strings.Split(keyValues[i], ":")
 			logFileXML.WriteString("\t\t<" + attribute[0] + ">")
 			logFileXML.WriteString(attribute[1])
