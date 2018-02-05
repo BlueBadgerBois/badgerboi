@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"strings"
 	"strconv"
+	"io/ioutil"
 )
 
 const MAX_TRANSACTION_VALIDITY_SECS = 60
@@ -112,11 +113,17 @@ func (handler *Handler) dumplog(w http.ResponseWriter, r *http.Request) {
 		}
 
 		xmlLog := writeLogsToFile(outfile, log_items)
+		w.Header().Set("Content-Description", "File Transfer")
+    w.Header().Set("Content-Transfer-Encoding", "binary")
+		w.Header().Set("Content-Disposition", "attachment; filename=" + outfile)
+		w.Header().Set("Content-Type", "application/octet-stream")
+		//r.Header.Set("filename", outfile)
+		http.ServeFile(w, r, "./" + outfile)
 
 		fmt.Fprintf(w, 
 			"Username: " + username + "\n" +
 			"Outfile: " + outfile + "\n" +
-			"Logfile contents: ")
+			"Logfile contents:\n")
 			fmt.Fprintf(w, xmlLog)
 	}
 }
@@ -303,7 +310,7 @@ func writeLogsToFile(outfile string, log_items []db.LogItem) string{
 
 		logFileXML.WriteString("\t<" + logType[1] + ">\n")
 
-		for i := 0; i < len(keyValues); i++ {
+		for i := 1; i < len(keyValues); i++ {
 			attribute := strings.Split(keyValues[i], ":")
 			logFileXML.WriteString("\t\t<" + attribute[0] + ">")
 			logFileXML.WriteString(attribute[1])
@@ -314,6 +321,11 @@ func writeLogsToFile(outfile string, log_items []db.LogItem) string{
 	logFileXML.WriteString("</log>\n")
 
 	fmt.Println(logFileXML.String())
+	err := ioutil.WriteFile(outfile, []byte(logFileXML.String()), 0644)
+	if err != nil {
+		log.Println("Error writing to file " + outfile)
+		panic(err)
+	}
+
 	return logFileXML.String()
-	//ioutil.WriteFile(outfile, logFileXML.String())
 }

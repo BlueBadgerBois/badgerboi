@@ -9,10 +9,12 @@ import (
 	"strings"
 	"net/http"
 	"net/url"
-	"log"
+	"sync"
 )
 
-const serverUrl = "web:8082"
+const serverUrl = "http://web:8082"
+const defaultTestFile = "1userWorkLoad.txt"
+var wg sync.WaitGroup
 
 /*
 * Returns a two dimentional array, outer array contains the users,
@@ -76,8 +78,9 @@ func sendCommands (commands []string) {
 		command = strings.Split(commands[i], ",")
 		log.Println("----------------------------------------------")
 		log.Println(command)		
-		sendCommand (command)
+		sendCommand(command)
 	}
+	defer wg.Done()
 }
 
 /*
@@ -266,22 +269,41 @@ func sendCommand (command []string) {
 	}
 
 	if command[0] == "DUMPLOG" {
+		log.Println("In dumplog")
 		data := url.Values{}
-		// data.Set("username", command[1])
-		data.Add("outfile", command[1])
+		var outfile string
+
+		if(len(command) <= 2){
+			data.Set("username", "admin")
+			outfile = command[1]
+		} else {
+			data.Set("username", command[1])
+			outfile = command[2]
+		}
+		data.Add("outfile", outfile)
+
 		req, err := http.NewRequest("POST", serverUrl + "/dumplog", strings.NewReader(data.Encode()))
 		if err != nil {
 			log.Println("Error making a new request:")
 			log.Println(err)
 		}
-		sendRequest(req)
+
+		body := sendRequest(req)
+		trimIndex := strings.Index(body, "<")
+		body = body[trimIndex:]
+		bodyInBytes := []byte(body)
+		err = ioutil.WriteFile(outfile, bodyInBytes, 0644)
+		if err != nil {
+			log.Println("Error writing to file " + outfile)
+			panic(err)
+		}
 	}
 }
 
 /*
 * Handles sending a request and printing the response
 */
-func sendRequest (req *http.Request) {
+func sendRequest (req *http.Request) string {
 	log.Println("In send request")
 	log.Println("Sending request...")
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -295,18 +317,22 @@ func sendRequest (req *http.Request) {
 	log.Println("Response Status:", resp.Status)
 	body, _ := ioutil.ReadAll(resp.Body)
 	log.Println("Response Body:", string(body))
+	return string(body)
 }
 
 func main (){
-	log.Println("Hello")
+var testFile string
+
 	if len(os.Args) < 2 {
-		log.Println("Filename not provided")
-		return
+		log.Println("Default file used: " + defaultTestFile)
+		testFile = defaultTestFile
+	} else {
+		testFile = os.Args[1]
 	}
 
-	fileData, err := ioutil.ReadFile(os.Args[1])
+	fileData, err := ioutil.ReadFile(testFile)
 	if err != nil {
-		log.Println("Error reading file ", os.Args[1])
+		log.Println("Error reading file ", testFile)
 		panic(err)
 	}
 
@@ -324,6 +350,11 @@ func main (){
 
 	for i := 0; i < len(commandsByUser); i++ {
 		if(commandsByUser[i][0] != "adminDumplogs"){
+			wg.Add(1)
+			go sendCommands(commandsByUser[i])
+		} else {
+			wg.Wait()
+			wg.Add(1)
 			sendCommands(commandsByUser[i])
 		}
 	}

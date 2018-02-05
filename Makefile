@@ -28,3 +28,6 @@ upquote:
 
 reloadquote:
 	docker-compose up --no-deps --build quote
+
+upworkload:
+	docker-compose up --no-deps workload
