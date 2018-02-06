@@ -31,3 +31,6 @@ reloadquote:
 
 upworkload:
 	docker-compose up --no-deps workload
+
+cptestLog:
+	docker cp workload:/go/src/app/testLOG .

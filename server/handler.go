@@ -21,7 +21,7 @@ type Handler struct {}
 
 func (handler *Handler) summary(w http.ResponseWriter, r *http.Request) {
 	// TODO iterate through all holdings. Need to timplement buy first
-	if r.Method == "GET" {
+	if r.Method == "POST" {
 		r.ParseForm()
 		username := r.Form.Get("username")
 

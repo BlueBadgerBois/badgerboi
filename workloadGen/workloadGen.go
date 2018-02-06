@@ -114,7 +114,7 @@ func sendCommand (command []string) {
 	if command[0] == "DISPLAY_SUMMARY" {
 		data := url.Values{}
 		data.Set("username", command[1])
-		req, err := http.NewRequest("GET", serverUrl + "/summary", strings.NewReader(data.Encode()))
+		req, err := http.NewRequest("POST", serverUrl + "/summary", strings.NewReader(data.Encode()))
 		if err != nil {
 			log.Println("Error making a new request:")
 			log.Println(err)
