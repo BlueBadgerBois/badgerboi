@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"strconv"
 )
 
 func (handler *Handler) buy(w http.ResponseWriter, r *http.Request) {
@@ -250,7 +249,6 @@ func logBuyCommand(stockSymbol string, user *db.User) {
 	commandLogItem := db.BuildUserCommandLogItemStruct()
 	commandLogItem.Command = "BUY"
 	commandLogItem.Username = user.Username
-	commandLogItem.Timestamp = strconv.FormatInt(dbw.GetCurrentTime().UnixNano()/1000000, 10)
 	commandLogItem.StockSymbol = stockSymbol
 	commandLogItem.Funds = centsToDollarsString(user.CurrentMoney)
 	username := user.Username
@@ -263,7 +261,6 @@ func logCommitBuyCommand(stockSymbol string, user *db.User) {
 	commandLogItem := db.BuildUserCommandLogItemStruct()
 	commandLogItem.Command = "COMMIT_BUY"
 	commandLogItem.Username = user.Username
-	commandLogItem.Timestamp = strconv.FormatInt(dbw.GetCurrentTime().UnixNano()/1000000, 10)
 	commandLogItem.StockSymbol = stockSymbol
 	commandLogItem.Funds = centsToDollarsString(user.CurrentMoney)
 	username := user.Username
@@ -276,7 +273,6 @@ func logCancelBuyCommand(stockSymbol string, user *db.User) {
 	commandLogItem := db.BuildUserCommandLogItemStruct()
 	commandLogItem.Command = "CANCEL_BUY"
 	commandLogItem.Username = user.Username
-	commandLogItem.Timestamp = strconv.FormatInt(dbw.GetCurrentTime().UnixNano()/1000000, 10)
 	commandLogItem.StockSymbol = stockSymbol
 	commandLogItem.Funds = centsToDollarsString(user.CurrentMoney)
 	username := user.Username

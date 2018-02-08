@@ -132,7 +132,6 @@ func logErrorEvent(params map[string]string, user *db.User) {
 	errorEventLogItem := db.BuildErrorEventLogItemStruct()
 	errorEventLogItem.Command = params["command"]
 	errorEventLogItem.Username = user.Username
-	errorEventLogItem.Timestamp = strconv.FormatInt(dbw.GetCurrentTime().UnixNano()/1000000, 10)
 	errorEventLogItem.StockSymbol = params["stockSymbol"]
 	errorEventLogItem.Funds = centsToDollarsString(user.CurrentMoney)
 	errorEventLogItem.ErrorMessage = params["errorMessage"]
@@ -146,7 +145,6 @@ func logAddCommand(user *db.User) {
 	commandLogItem := db.BuildUserCommandLogItemStruct()
 	commandLogItem.Command = "ADD"
 	commandLogItem.Username = user.Username
-	commandLogItem.Timestamp = strconv.FormatInt(dbw.GetCurrentTime().UnixNano()/1000000, 10)
 	commandLogItem.StockSymbol = ""
 	commandLogItem.Funds = centsToDollarsString(user.CurrentMoney)
 	username := user.Username
@@ -158,7 +156,6 @@ func logAccountTransaction(user *db.User, action string) {
 	transactionLogItem := db.BuildAccountTransactionLogItemStruct()
 	transactionLogItem.Action = action
 	transactionLogItem.Username = user.Username
-	transactionLogItem.Timestamp = strconv.FormatInt(dbw.GetCurrentTime().UnixNano()/1000000, 10)
 	transactionLogItem.Funds = centsToDollarsString(user.CurrentMoney)
 	username := user.Username
 
@@ -171,7 +168,6 @@ func logSystemEvent(user *db.User, params map[string]string) {
 	systemEventLogItem.StockSymbol = params["stockSymbol"]
 	systemEventLogItem.Filename = params["filename"]
 	systemEventLogItem.Username = user.Username
-	systemEventLogItem.Timestamp = strconv.FormatInt(dbw.GetCurrentTime().UnixNano()/1000000, 10)
 	systemEventLogItem.Funds = centsToDollarsString(user.CurrentMoney)
 	username := user.Username
 
@@ -182,7 +178,6 @@ func logSummaryCommand(user *db.User) {
 	commandLogItem := db.BuildUserCommandLogItemStruct()
 	commandLogItem.Command = "DISPLAY_SUMMARY"
 	commandLogItem.Username = user.Username
-	commandLogItem.Timestamp = strconv.FormatInt(dbw.GetCurrentTime().UnixNano()/1000000, 10)
 	commandLogItem.StockSymbol = "" // No stock symbol for a summary
 	commandLogItem.Funds = centsToDollarsString(user.CurrentMoney)
 	username := user.Username
@@ -214,7 +209,6 @@ func logQuoteServer(params map[string]string) {
 	quoteLogItem.Price = params["price"]
 	quoteLogItem.StockSymbol = params["stockSymbol"]
 	quoteLogItem.Username = params["username"]
-	quoteLogItem.Timestamp = strconv.FormatInt(dbw.GetCurrentTime().UnixNano()/1000000, 10) //not working
 	quoteLogItem.QuoteServerTime = params["quoteServerTime"]
 	quoteLogItem.Cryptokey = params["cryptokey"]
 	username := params["username"]
@@ -227,7 +221,6 @@ func logQuoteCommand(params map[string]string, user *db.User) {
 	commandLogItem := db.BuildUserCommandLogItemStruct()
 	commandLogItem.Command = "QUOTE"
 	commandLogItem.Username = params["username"]
-	commandLogItem.Timestamp = strconv.FormatInt(dbw.GetCurrentTime().UnixNano()/1000000, 10)
 	commandLogItem.StockSymbol = params["stockSymbol"]
 	commandLogItem.Funds = centsToDollarsString(user.CurrentMoney)
 	username := params["username"]
@@ -315,6 +308,10 @@ func writeLogsToFile(outfile string, log_items []db.LogItem) string{
 		logType := strings.Split(keyValues[0], ":")
 
 		logFileXML.WriteString("\t<" + logType[1] + ">\n")
+
+		logFileXML.WriteString("\t\t<Timestamp>")
+		logFileXML.WriteString(strconv.FormatInt(log_items[i].CreatedAt.UnixNano()/1000000, 10))
+		logFileXML.WriteString("</Timestamp>\n")
 
 		for i := 1; i < len(keyValues); i++ {
 			attribute := strings.Split(keyValues[i], ":")
