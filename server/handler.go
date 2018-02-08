@@ -117,7 +117,6 @@ func (handler *Handler) dumplog(w http.ResponseWriter, r *http.Request) {
     w.Header().Set("Content-Transfer-Encoding", "binary")
 		w.Header().Set("Content-Disposition", "attachment; filename=" + outfile)
 		w.Header().Set("Content-Type", "application/octet-stream")
-		//r.Header.Set("filename", outfile)
 		http.ServeFile(w, r, "./" + outfile)
 
 		fmt.Fprintf(w, 
@@ -133,6 +132,7 @@ func logErrorEvent(params map[string]string, user *db.User) {
 	errorEventLogItem := db.BuildErrorEventLogItemStruct()
 	errorEventLogItem.Command = params["command"]
 	errorEventLogItem.Username = user.Username
+	errorEventLogItem.Timestamp = strconv.FormatInt(dbw.GetCurrentTime().UnixNano()/1000000, 10)
 	errorEventLogItem.StockSymbol = params["stockSymbol"]
 	errorEventLogItem.Funds = centsToDollarsString(user.CurrentMoney)
 	errorEventLogItem.ErrorMessage = params["errorMessage"]
@@ -146,6 +146,7 @@ func logAddCommand(user *db.User) {
 	commandLogItem := db.BuildUserCommandLogItemStruct()
 	commandLogItem.Command = "ADD"
 	commandLogItem.Username = user.Username
+	commandLogItem.Timestamp = strconv.FormatInt(dbw.GetCurrentTime().UnixNano()/1000000, 10)
 	commandLogItem.StockSymbol = ""
 	commandLogItem.Funds = centsToDollarsString(user.CurrentMoney)
 	username := user.Username
@@ -157,6 +158,7 @@ func logAccountTransaction(user *db.User, action string) {
 	transactionLogItem := db.BuildAccountTransactionLogItemStruct()
 	transactionLogItem.Action = action
 	transactionLogItem.Username = user.Username
+	transactionLogItem.Timestamp = strconv.FormatInt(dbw.GetCurrentTime().UnixNano()/1000000, 10)
 	transactionLogItem.Funds = centsToDollarsString(user.CurrentMoney)
 	username := user.Username
 
@@ -169,6 +171,7 @@ func logSystemEvent(user *db.User, params map[string]string) {
 	systemEventLogItem.StockSymbol = params["stockSymbol"]
 	systemEventLogItem.Filename = params["filename"]
 	systemEventLogItem.Username = user.Username
+	systemEventLogItem.Timestamp = strconv.FormatInt(dbw.GetCurrentTime().UnixNano()/1000000, 10)
 	systemEventLogItem.Funds = centsToDollarsString(user.CurrentMoney)
 	username := user.Username
 
@@ -179,6 +182,7 @@ func logSummaryCommand(user *db.User) {
 	commandLogItem := db.BuildUserCommandLogItemStruct()
 	commandLogItem.Command = "DISPLAY_SUMMARY"
 	commandLogItem.Username = user.Username
+	commandLogItem.Timestamp = strconv.FormatInt(dbw.GetCurrentTime().UnixNano()/1000000, 10)
 	commandLogItem.StockSymbol = "" // No stock symbol for a summary
 	commandLogItem.Funds = centsToDollarsString(user.CurrentMoney)
 	username := user.Username
@@ -210,6 +214,7 @@ func logQuoteServer(params map[string]string) {
 	quoteLogItem.Price = params["price"]
 	quoteLogItem.StockSymbol = params["stockSymbol"]
 	quoteLogItem.Username = params["username"]
+	quoteLogItem.Timestamp = strconv.FormatInt(dbw.GetCurrentTime().UnixNano()/1000000, 10) //not working
 	quoteLogItem.QuoteServerTime = params["quoteServerTime"]
 	quoteLogItem.Cryptokey = params["cryptokey"]
 	username := params["username"]
@@ -222,6 +227,7 @@ func logQuoteCommand(params map[string]string, user *db.User) {
 	commandLogItem := db.BuildUserCommandLogItemStruct()
 	commandLogItem.Command = "QUOTE"
 	commandLogItem.Username = params["username"]
+	commandLogItem.Timestamp = strconv.FormatInt(dbw.GetCurrentTime().UnixNano()/1000000, 10)
 	commandLogItem.StockSymbol = params["stockSymbol"]
 	commandLogItem.Funds = centsToDollarsString(user.CurrentMoney)
 	username := params["username"]
@@ -232,7 +238,7 @@ func logQuoteCommand(params map[string]string, user *db.User) {
 func quoteResponseToMap(message string) map[string]string {
 	splitMessage := strings.Split(message, ",")
 
-	log.Println("Quote server response: ", splitMessage)
+	//log.Println("Quote server response: ", splitMessage)
 
 	outputMap := map[string]string {
 		"price": strings.TrimSpace(splitMessage[0]),
@@ -298,7 +304,7 @@ func writeLogsToFile(outfile string, log_items []db.LogItem) string{
 	logFileXML.WriteString("<log>\n")
 
 	for i := 0; i < len(log_items); i++ {
-		fmt.Println(log_items[i].Data)
+		//fmt.Println(log_items[i].Data)
 
 		logItem := strings.Replace(log_items[i].Data, "\"", "", -1)
 		logItem = strings.Replace(logItem, "}", "", -1)
@@ -320,7 +326,7 @@ func writeLogsToFile(outfile string, log_items []db.LogItem) string{
 	}
 	logFileXML.WriteString("</log>\n")
 
-	fmt.Println(logFileXML.String())
+	//fmt.Println(logFileXML.String())
 	err := ioutil.WriteFile(outfile, []byte(logFileXML.String()), 0644)
 	if err != nil {
 		log.Println("Error writing to file " + outfile)

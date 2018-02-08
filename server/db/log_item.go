@@ -42,17 +42,19 @@ type UserCommandLogItem struct {
 	// User commands come from the user command files or from manual entries in
 	// the students' web forms
 	LogType string // 'UserCommandType'
-	Server string
-	Command string
-	Username string
-	StockSymbol string // what to do for summary?
-	Filename string
-	Funds string // should be in dollars
+	Timestamp string `json:"timestamp"`
+	Server string `json:"server"`
+	TransactionNum string `json:"transactionNum"`
+	Command string `json:"command"`
+	Username string `json:"username"`
+	StockSymbol string `json:"stockSymbol"`// what to do for summary?
+	Filename string `json:"filename"`
+	Funds string `json:"funds"`// should be in dollars
 }
 
 func BuildUserCommandLogItemStruct() UserCommandLogItem {
 	logItem := UserCommandLogItem {
-		LogType: "UserCommandType",
+		LogType: "userCommand",
 		Server: "someServer",
 		Filename: "inputFile", // this needs to be changed later to be overridden with an actual file name
 	}
@@ -73,17 +75,19 @@ type QuoteServerLogItem struct {
 	// Every hit to the quote server requires a log entry with the results. The
 	// price, symbol, username, timestamp and cryptokey are as returned by the quote server
 	LogType string // 'QuoteServerType'
-	Server string
-	Price string
-	StockSymbol string
-	Username string
-	QuoteServerTime string
-	Cryptokey string
+	Timestamp string `json:"timestamp"`
+	Server string `json:"server"`
+	TransactionNum string `json:"transactionNum"`
+	Price string `json:"price"`
+	StockSymbol string `json:"stockSymbol"`
+	Username string `json:"username"`
+	QuoteServerTime string `json:"quoteServerTime"`
+	Cryptokey string `json:"cryptokey"`
 }
 
 func BuildQuoteServerLogItemStruct() QuoteServerLogItem {
 	logItem := QuoteServerLogItem {
-		LogType: "QuoteServerType",
+		LogType: "quoteServer",
 		Server: "someServer",
 	}
 	return logItem
@@ -104,15 +108,17 @@ type AccountTransactionLogItem struct {
 	// Any time a user's account is touched, an account message is printed.
 	// Appropriate actions are "add" or "remove".
 	LogType string // 'AccountTransactionType'
-	Server string
-	Action string
-	Username string
-	Funds string // dollars
+	Timestamp string `json:"timestamp"`
+	Server string `json:"server"`
+	TransactionNum string `json:"transactionNum"`
+	Action string `json:"action"`
+	Username string `json:"username"`
+	Funds string `json:"funds"`// dollars
 }
 
 func BuildAccountTransactionLogItemStruct() AccountTransactionLogItem {
 	logItem := AccountTransactionLogItem {
-		LogType: "AcountTransactionType",
+		LogType: "acountTransaction",
 		Server: "someServer",
 	}
 	return logItem
@@ -132,17 +138,19 @@ type SystemEventLogItem struct {
 	// System events can be current user commands, interserver communications,
 	// or the execution of previously set triggers
 	LogType string // 'SystemEventType'
-	Server string
-	Command string
-	Username string
-	StockSymbol string
-	Filename string
-	Funds string // dollars
+	Timestamp string `json:"timestamp"`
+	Server string `json:"server"`
+	TransactionNum string `json:"transactionNum"`
+	Command string `json:"command"`
+	Username string `json:"username"`
+	StockSymbol string `json:"stockSymbol"`
+	Filename string `json:"filename"`
+	Funds string `json:"funds"` // dollars
 }
 
 func BuildSystemEventLogItemStruct() SystemEventLogItem {
 	logItem := SystemEventLogItem {
-		LogType: "SystemEventType",
+		LogType: "systemEvent",
 		Server: "someServer",
 	}
 	return logItem
@@ -162,18 +170,20 @@ type ErrorEventLogItem struct {
 	// Error messages contain all the information of user commands, in
 	// addition to an optional error message
 	LogType string // 'ErrorEventType'
-	Server string
-	Command string
-	Username string
-	StockSymbol string
-	Filename string
-	Funds string // dollars
-	ErrorMessage string
+	Timestamp string `json:"timestamp"`
+	Server string `json:"server"`
+	TransactionNum string `json:"transactionNum"`
+	Command string `json:"command"`
+	Username string `json:"username"`
+	StockSymbol string `json:"stockSymbol"`
+	Filename string `json:"filename"`
+	Funds string `json:"funds"` // dollars
+	ErrorMessage string `json:"errorMessage"`
 }
 
 func BuildErrorEventLogItemStruct() ErrorEventLogItem {
 	logItem := ErrorEventLogItem {
-		LogType: "ErrorEventType",
+		LogType: "errorEvent",
 		Server: "someServer",
 		Filename: "inputFile", // this needs to be changed later to be overridden with an actual file name
 	}
@@ -194,13 +204,15 @@ type DebugLogItem struct {
 	// Debugging messages contain all the information of user commands, in
 	// addition to an optional debug message
 	LogType string // 'DebugType'
-	Server string
-	Command string
-	Username string
-	StockSymbol string
-	Filename string
-	Funds string // dollars
-	DebugMessage string
+	Timestamp string `json:"timestamp"`
+	Server string `json:"server"`
+	TransactionNum string `json:"transactionNum"`
+	Command string `json:"command"`
+	Username string `json:"username"`
+	StockSymbol string `json:"stockSymbol"`
+	Filename string `json:"filename"`
+	Funds string `json:"funds"` // dollars
+	DebugMessage string `json:"debugMessage"`
 }
 
 func bytesToString(bytes []byte) string {
