@@ -192,7 +192,7 @@ func logSummaryCommand(user *db.User) {
 
 // Fetch a quote from the quote server and log it
 func getQuoteFromServer(username string, stockSymbol string) map[string]string {
-	conn, err := net.Dial("tcp", "quoteServer:3333")
+	conn, err := net.Dial("tcp", "quoteserve:4448")
 
 	if err != nil{
 		log.Println("error hitting quote server: ", err)

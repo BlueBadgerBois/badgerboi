@@ -12,8 +12,8 @@ import (
 )
 
 const (
-    CONN_HOST = "quoteServer"
-    CONN_PORT = "3333"
+    CONN_HOST = "quoteserve"
+    CONN_PORT = "4448"
     CONN_TYPE = "tcp"
 )
 

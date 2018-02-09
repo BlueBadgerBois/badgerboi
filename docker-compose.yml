@@ -41,14 +41,14 @@ services:
   quote:
     container_name: quote_container
     ports:
-      - "3333:3333"
+      - "4448:4448"
     build: ./quoteServer
     volumes:
       - ./quoteServer:/go/src/app
     networks:
       default:
         aliases:
-          - quoteServer
+          - quoteserve
   workload:
     container_name: workload
     build: ./workloadGen
