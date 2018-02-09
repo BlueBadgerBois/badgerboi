@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math"
 	"net/http"
+	"strconv"
 )
 
 func (handler *Handler) sell(w http.ResponseWriter, r *http.Request) {
@@ -239,6 +240,7 @@ func logSellCommand(stockSymbol string, user *db.User) {
 	commandLogItem.Username = user.Username
 	commandLogItem.StockSymbol = stockSymbol
 	commandLogItem.Funds = centsToDollarsString(user.CurrentMoney)
+	commandLogItem.TransactionNum = strconv.Itoa(currentTxNum)
 	username := user.Username
 
 	commandLogItem.SaveRecord(dbw, username)
@@ -251,6 +253,7 @@ func logCommitSellCommand(stockSymbol string, user *db.User) {
 	commandLogItem.Username = user.Username
 	commandLogItem.StockSymbol = stockSymbol
 	commandLogItem.Funds = centsToDollarsString(user.CurrentMoney)
+	commandLogItem.TransactionNum = strconv.Itoa(currentTxNum)
 	username := user.Username
 
 	commandLogItem.SaveRecord(dbw, username)
@@ -263,6 +266,7 @@ func logCancelSellCommand(stockSymbol string, user *db.User) {
 	commandLogItem.Username = user.Username
 	commandLogItem.StockSymbol = stockSymbol
 	commandLogItem.Funds = centsToDollarsString(user.CurrentMoney)
+	commandLogItem.TransactionNum = strconv.Itoa(currentTxNum)
 	username := user.Username
 
 	commandLogItem.SaveRecord(dbw, username)

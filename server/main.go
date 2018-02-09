@@ -6,10 +6,13 @@ import (
 	"net/http"
 	"os"
 	"github.com/kabukky/httpscerts"
+	"reflect"
 )
 
 var dbw = &db.DBW{} // this is global so everything can see it
 var handler = Handler{}
+var currentTxNum int
+type fn func(http.ResponseWriter, *http.Request)
 
 const WEB_ROLE = "web"
 const JOB_ROLE = "job"
@@ -42,24 +45,36 @@ func runAsWebServer() {
 	// web server handlers
 	log.Println("Running web server.")
 	http.HandleFunc("/", handler.index)
-	http.HandleFunc("/quote", handler.quote)
-	http.HandleFunc("/add", handler.add)
-	http.HandleFunc("/buy", handler.buy)
-	http.HandleFunc("/commitBuy", handler.commitBuy)
-	http.HandleFunc("/cancelBuy", handler.cancelBuy)
-	http.HandleFunc("/sell", handler.sell)
-	http.HandleFunc("/commitSell", handler.commitSell)
-	http.HandleFunc("/cancelSell", handler.cancelSell)
-	http.HandleFunc("/summary", handler.summary)
-	http.HandleFunc("/setBuyAmount", handler.setBuyAmount)
-	http.HandleFunc("/cancelSetBuy", handler.cancelSetBuy)
-	http.HandleFunc("/setBuyTrigger", handler.setBuyTrigger)
-	http.HandleFunc("/setSellAmount", handler.setSellAmount)
-	http.HandleFunc("/cancelSetSell", handler.cancelSetSell)
-	http.HandleFunc("/setSellTrigger", handler.setSellTrigger)
-	http.HandleFunc("/dumplog", handler.dumplog)
+	http.Handle("/quote", newTransaction(handler.quote))
+	http.Handle("/add", newTransaction(handler.add))
+	http.Handle("/buy", newTransaction(handler.buy))
+	http.Handle("/commitBuy", newTransaction(handler.commitBuy))
+	http.Handle("/cancelBuy", newTransaction(handler.cancelBuy))
+	http.Handle("/sell", newTransaction(handler.sell))
+	http.Handle("/commitSell", newTransaction(handler.commitSell))
+	http.Handle("/cancelSell", newTransaction(handler.cancelSell))
+	http.Handle("/summary", newTransaction(handler.summary))
+	http.Handle("/setBuyAmount", newTransaction(handler.setBuyAmount))
+	http.Handle("/cancelSetBuy", newTransaction(handler.cancelSetBuy))
+	http.Handle("/setBuyTrigger", newTransaction(handler.setBuyTrigger))
+	http.Handle("/setSellAmount", newTransaction(handler.setSellAmount))
+	http.Handle("/cancelSetSell", newTransaction(handler.cancelSetSell))
+	http.Handle("/setSellTrigger", newTransaction(handler.setSellTrigger))
+	http.Handle("/dumplog", newTransaction(handler.dumplog))
 	http.ListenAndServe(":8082", nil)
 	// http.ListenAndServeTLS(":8082", "cert.pem", "key.pem", nil)
+}
+
+//Middleware
+func newTransaction(next fn) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request){
+		nextHandler := http.HandlerFunc(next)
+		txNum := db.NewTxNum(dbw)
+		currentTxNum = txNum.TransactionId
+		log.Println(reflect.TypeOf(currentTxNum))
+		log.Println(currentTxNum)
+		nextHandler.ServeHTTP(w, r)
+	})
 }
 
 func generateCertsIfNotPresent() {

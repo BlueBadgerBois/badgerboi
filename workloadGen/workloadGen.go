@@ -13,7 +13,7 @@ import (
 )
 
 const serverUrl = "http://web:8082"
-const defaultTestFile = "1userWorkLoad.txt"
+const defaultTestFile = "10User_testWorkLoad.txt"
 var wg sync.WaitGroup
 
 /*

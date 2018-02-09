@@ -57,6 +57,7 @@ func (dbw *DBW) autoMigrate() {
 	dbw.Conn.AutoMigrate(&StockHolding{})
 	dbw.Conn.AutoMigrate(&LogItem{})
 	dbw.Conn.AutoMigrate(&Trigger{})
+	dbw.Conn.AutoMigrate(&TransactionNum{})
 	log.Println("Finished auto-migrating.")
 }
 
