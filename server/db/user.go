@@ -3,6 +3,7 @@ package db
 import (
 	"errors"
 	"github.com/jinzhu/gorm"
+	"fmt"
 )
 
 type User struct {
@@ -18,7 +19,7 @@ func  UserFromUsernameOrCreate(dbw *DBW, username string) *User {
 
 	var user User
 	dbw.Conn.FirstOrCreate(&user, &u)
-	fmt.Println("user id from newly created username: ", user.Id)
+	fmt.Println("user id from newly created username: ", user.ID)
 	return &user
 }
 
@@ -27,7 +28,7 @@ func UserFromUsername(dbw *DBW, username string) (*User, error) {
 	if dbw.Conn.Where(&User{Username: username}).First(&user).RecordNotFound() {
 		return &user, errors.New("User " + username + " not found!")
 	}
-	fmt.Println("user id from username: ", user.Id)
+	fmt.Println("user id from username: ", user.ID)
 	return &user, nil
 }
 

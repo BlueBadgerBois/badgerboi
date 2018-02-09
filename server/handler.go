@@ -192,7 +192,7 @@ func logSummaryCommand(user *db.User) {
 
 // Fetch a quote from the quote server and log it
 func getQuoteFromServer(username string, stockSymbol string) map[string]string {
-	conn, err := net.Dial("tcp", "192.168.1.152:4450")
+	conn, err := net.Dial("tcp", "quoteserve:4448")
 
 	if err != nil{
 		log.Println("error hitting quote server: ", err)
@@ -262,7 +262,7 @@ func authUser(uname string) (db.User, error) {
 	if dbw.Conn.First(&user, &u).RecordNotFound() {
 		return user, errors.New("User not found!")
 	}
-	fmt.Println("authUser id: " + user.Id)
+	fmt.Println("authUser id: ", user.ID)
 	return user, nil
 }
 
