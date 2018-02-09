@@ -12,6 +12,7 @@ services:
       - ./server:/go/src/app
     environment:
       ROLE: web
+      QUOTE_SERVER_URL: "quoteserve:4448"
     networks:
       default:
         aliases:
@@ -29,6 +30,7 @@ services:
           - job
     environment:
       ROLE: job
+      QUOTE_SERVER_URL: "quoteserve:4448"
   db:
     container_name: db_container
     image: postgres

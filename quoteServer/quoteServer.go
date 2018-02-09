@@ -35,8 +35,8 @@ func getStockResponse(buf []byte) string {
   }
 
   var quoteRes string = strconv.Itoa(rand.Intn(999)) + "." + strconv.Itoa(10 + rand.Intn(89)) +  //Quote
-    ", " + sp[0] +  //Symbol
-    ", " + sp[1] +  //UserID
+    ", " + strings.TrimSpace(sp[0]) +  //Symbol
+    ", " + strings.TrimSpace(sp[1]) +  //UserID
     ", " + time.Now().String() + //Timestamp
     ", abc" //CryptoKey
 
@@ -52,7 +52,6 @@ func handleRequest(conn net.Conn) {
   }
 
   stockResponse := getStockResponse(buf)
-
 
   // Send a response back to person contacting us.
   conn.Write([]byte(stockResponse))

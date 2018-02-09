@@ -10,6 +10,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"os"
 	"strings"
 	"strconv"
 	"io/ioutil"
@@ -190,9 +191,15 @@ func logSummaryCommand(user *db.User) {
 	commandLogItem.SaveRecord(dbw, username)
 }
 
+func getQuoteServerUrl() string {
+	url := os.Getenv("QUOTE_SERVER_URL")
+	return url
+}
+
 // Fetch a quote from the quote server and log it
 func getQuoteFromServer(username string, stockSymbol string) map[string]string {
-	conn, err := net.Dial("tcp", "quoteserve:4448")
+	quoteServerUrl := getQuoteServerUrl()
+	conn, err := net.Dial("tcp", quoteServerUrl)
 
 	if err != nil{
 		log.Println("error hitting quote server: ", err)
@@ -237,8 +244,6 @@ func logQuoteCommand(params map[string]string, user *db.User) {
 
 func quoteResponseToMap(message string) map[string]string {
 	splitMessage := strings.Split(message, ",")
-
-	//log.Println("Quote server response: ", splitMessage)
 
 	outputMap := map[string]string {
 		"price": strings.TrimSpace(splitMessage[0]),
