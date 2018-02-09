@@ -16,6 +16,8 @@ func (handler *Handler) setSellAmount(w http.ResponseWriter, r *http.Request) {
 		sellAmount := r.Form.Get("sellAmount")
 
 		user, err := authUser(username)
+		logSetSellAmountCommand(stockSymbol, user)
+
 		if err != nil {
 			errorEventParams := map[string]string {
 				"command": "SET_SELL_AMOUNT",
@@ -77,6 +79,8 @@ func (handler *Handler) cancelSetSell(w http.ResponseWriter, r *http.Request) {
 		stockSymbol := r.Form.Get("stockSymbol")
 
 		user, err := authUser(username)
+		logCancelSetSellCommand(stockSymbol, user)
+
 		if err != nil {
 			fmt.Fprintf(w, "Error: ", err)
 			return
@@ -125,6 +129,8 @@ func (handler *Handler) setSellTrigger(w http.ResponseWriter, r *http.Request) {
 		threshold := r.Form.Get("threshold")
 
 		user, err := authUser(username)
+		logSetSellTriggerCommand(stockSymbol, user)
+
 		if err != nil {
 			fmt.Fprintf(w, "Error: ", err)
 			return
@@ -169,4 +175,41 @@ func (handler *Handler) setSellTrigger(w http.ResponseWriter, r *http.Request) {
 		trig.NumStocks = numStocks
 		dbw.Conn.Save(&trig)
 	}
+}
+
+//logging functions here
+func logSetSellAmountCommand(stockSymbol string, user db.User) {
+	commandLogItem := db.BuildUserCommandLogItemStruct()
+	commandLogItem.Command = "SET_SELL_AMOUNT"
+	commandLogItem.Username = user.Username
+	commandLogItem.StockSymbol = stockSymbol
+	commandLogItem.Funds = centsToDollarsString(user.CurrentMoney)
+	commandLogItem.TransactionNum = strconv.Itoa(currentTxNum)
+	username := user.Username
+
+	commandLogItem.SaveRecord(dbw, username)
+}
+
+func logCancelSetSellCommand(stockSymbol string, user db.User) {
+	commandLogItem := db.BuildUserCommandLogItemStruct()
+	commandLogItem.Command = "CANCEL_SET_SELL"
+	commandLogItem.Username = user.Username
+	commandLogItem.StockSymbol = stockSymbol
+	commandLogItem.Funds = centsToDollarsString(user.CurrentMoney)
+	commandLogItem.TransactionNum = strconv.Itoa(currentTxNum)
+	username := user.Username
+
+	commandLogItem.SaveRecord(dbw, username)
+}
+
+func logSetSellTriggerCommand(stockSymbol string, user db.User) {
+	commandLogItem := db.BuildUserCommandLogItemStruct()
+	commandLogItem.Command = "SET_SELL_TRIGGER"
+	commandLogItem.Username = user.Username
+	commandLogItem.StockSymbol = stockSymbol
+	commandLogItem.Funds = centsToDollarsString(user.CurrentMoney)
+	commandLogItem.TransactionNum = strconv.Itoa(currentTxNum)
+	username := user.Username
+
+	commandLogItem.SaveRecord(dbw, username)
 }

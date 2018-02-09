@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"os"
 	"github.com/kabukky/httpscerts"
-	"reflect"
 )
 
 var dbw = &db.DBW{} // this is global so everything can see it
@@ -71,8 +70,6 @@ func newTransaction(next fn) http.Handler {
 		nextHandler := http.HandlerFunc(next)
 		txNum := db.NewTxNum(dbw)
 		currentTxNum = txNum.TransactionId
-		log.Println(reflect.TypeOf(currentTxNum))
-		log.Println(currentTxNum)
 		nextHandler.ServeHTTP(w, r)
 	})
 }

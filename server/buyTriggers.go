@@ -5,6 +5,7 @@ import(
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 )
 
 func (handler *Handler) setBuyAmount(w http.ResponseWriter, r *http.Request) {
@@ -15,6 +16,8 @@ func (handler *Handler) setBuyAmount(w http.ResponseWriter, r *http.Request) {
 		buyAmount := r.Form.Get("buyAmount")
 
 		user, err := authUser(username)
+		logSetBuyAmountCommand(stockSymbol, user)
+
 		if err != nil {
 			fmt.Fprintf(w, "Error: ", err)
 			errorEventParams := map[string]string {
@@ -88,6 +91,8 @@ func (handler *Handler) cancelSetBuy(w http.ResponseWriter, r *http.Request) {
 		stockSymbol := r.Form.Get("stockSymbol")
 
 		user, err := authUser(username)
+		logCancelSetBuyCommand(stockSymbol, user)
+
 		if err != nil {
 			fmt.Fprintf(w, "Error: ", err)
 			return
@@ -135,6 +140,8 @@ func (handler *Handler) setBuyTrigger(w http.ResponseWriter, r *http.Request) {
 		threshold := r.Form.Get("threshold")
 
 		user, err := authUser(username)
+		logSetBuyTriggerCommand(stockSymbol, user)
+
 		if err != nil {
 			fmt.Fprintf(w, "Error: ", err)
 			return
@@ -154,4 +161,41 @@ func (handler *Handler) setBuyTrigger(w http.ResponseWriter, r *http.Request) {
 
 		dbw.Conn.Save(&trig)
 	}
+}
+
+//logging functions here
+func logSetBuyAmountCommand(stockSymbol string, user db.User) {
+	commandLogItem := db.BuildUserCommandLogItemStruct()
+	commandLogItem.Command = "SET_BUY_AMOUNT"
+	commandLogItem.Username = user.Username
+	commandLogItem.StockSymbol = stockSymbol
+	commandLogItem.Funds = centsToDollarsString(user.CurrentMoney)
+	commandLogItem.TransactionNum = strconv.Itoa(currentTxNum)
+	username := user.Username
+
+	commandLogItem.SaveRecord(dbw, username)
+}
+
+func logCancelSetBuyCommand(stockSymbol string, user db.User) {
+	commandLogItem := db.BuildUserCommandLogItemStruct()
+	commandLogItem.Command = "CANCEL_SET_BUY"
+	commandLogItem.Username = user.Username
+	commandLogItem.StockSymbol = stockSymbol
+	commandLogItem.Funds = centsToDollarsString(user.CurrentMoney)
+	commandLogItem.TransactionNum = strconv.Itoa(currentTxNum)
+	username := user.Username
+
+	commandLogItem.SaveRecord(dbw, username)
+}
+
+func logSetBuyTriggerCommand(stockSymbol string, user db.User) {
+	commandLogItem := db.BuildUserCommandLogItemStruct()
+	commandLogItem.Command = "SET_BUY_TRIGGER"
+	commandLogItem.Username = user.Username
+	commandLogItem.StockSymbol = stockSymbol
+	commandLogItem.Funds = centsToDollarsString(user.CurrentMoney)
+	commandLogItem.TransactionNum = strconv.Itoa(currentTxNum)
+	username := user.Username
+
+	commandLogItem.SaveRecord(dbw, username)
 }
