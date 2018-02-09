@@ -192,13 +192,13 @@ func logSummaryCommand(user *db.User) {
 
 // Fetch a quote from the quote server and log it
 func getQuoteFromServer(username string, stockSymbol string) map[string]string {
-	conn, err := net.Dial("tcp", "quoteserve:4448")
+	conn, err := net.Dial("tcp", "192.168.1.152:4450")
 
 	if err != nil{
 		log.Println("error hitting quote server: ", err)
 	}
 
-	fmt.Fprintf(conn, username + ", " + stockSymbol)
+	fmt.Fprintf(conn, stockSymbol + "," + username + "\n")
 	message, _ := bufio.NewReader(conn).ReadString('\n')
 
 	responseMap := quoteResponseToMap(message)
@@ -242,8 +242,8 @@ func quoteResponseToMap(message string) map[string]string {
 
 	outputMap := map[string]string {
 		"price": strings.TrimSpace(splitMessage[0]),
-		"username": strings.TrimSpace(splitMessage[1]),
-		"stockSymbol": strings.TrimSpace(splitMessage[2]),
+		"stockSymbol": strings.TrimSpace(splitMessage[1]),
+		"username": strings.TrimSpace(splitMessage[2]),
 		"quoteServerTime": strings.TrimSpace(splitMessage[3]),
 		"cryptokey": strings.TrimSpace(splitMessage[4]),
 	}
