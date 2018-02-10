@@ -102,7 +102,7 @@ func (handler *Handler) cancelSetBuy(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			fmt.Fprintf(w, "Error: ", err)
 			errorEventParams := map[string]string {
-				"command": "BUY",
+				"command": "CANCEL_SET_BUY",
 				"stockSymbol": stockSymbol,
 				"errorMessage": err.Error(),
 			}
@@ -153,7 +153,7 @@ func (handler *Handler) setBuyTrigger(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			fmt.Fprintf(w, "Error: ", err)
 			errorEventParams := map[string]string {
-				"command": "BUY",
+				"command": "SET_BUY_TRIGGER",
 				"stockSymbol": stockSymbol,
 				"errorMessage": err.Error(),
 			}
