@@ -28,6 +28,21 @@ func BuildStockHolding(dbw *DBW, user *User, stockSymbol string) (*StockHolding,
 	return &holding, nil
 }
 
+func StockHoldingFromUserAndStockSym(dbw *DBW, userId uint, stockSymbol string) (*StockHolding, error) {
+	var stockHolding StockHolding
+	
+	s := StockHolding{
+		UserID: userId,
+		StockSymbol: stockSymbol,
+	}
+	
+	if dbw.Conn.First(&stockHolding, &s).RecordNotFound() {
+		return nil, errors.New("Error: " + stockSymbol + " holding not found for user " + string(userId))
+	}
+
+	return &stockHolding, nil
+}
+
 func (holding *StockHolding) Sufficient(targetNumber uint) bool {
 	return holding.Number >= targetNumber
 }

@@ -3,7 +3,6 @@ package main
 import(
 	"app/db"
 	"fmt"
-	"log"
 	"net/http"
 	"strconv"
 )
@@ -41,7 +40,6 @@ func (handler *Handler) setBuyAmount(w http.ResponseWriter, r *http.Request) {
 		newAmount := amountToBuyInCents
 
 		amountDifference := int(newAmount)-int(oldAmount)
-		log.Println(amountDifference)
 
 		if amountDifference < 0 {
 			user.CurrentMoney += uint(amountDifference*(-1))

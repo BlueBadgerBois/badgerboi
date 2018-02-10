@@ -99,12 +99,17 @@ func (handler *Handler) cancelSetSell(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// find the stock holding associated with this
-		s := db.StockHolding{
-			UserID: user.ID,
-			StockSymbol: stockSymbol,
+		stockHolding, err := db.StockHoldingFromUserAndStockSym(dbw, user.ID, stockSymbol)
+		if err != nil {
+			fmt.Fprintf(w, "Error:", err)
+			errorEventParams := map[string]string {
+				"command": "CANCEL_SET_SELL",
+				"stockSymbol": stockSymbol,
+				"errorMessage": err.Error(),
+			}
+			logErrorEvent(errorEventParams, &user)
+			return
 		}
-		var stockHolding db.StockHolding
-		dbw.Conn.First(&stockHolding, &s)
 
 		// return the number of stocks we witheld
 		stockHolding.Number += trig.NumStocks
@@ -162,12 +167,17 @@ func (handler *Handler) setSellTrigger(w http.ResponseWriter, r *http.Request) {
 		numStocks := uint(math.Ceil(float64(trig.Amount)/float64(thresholdInCents)))
 
 		// get the stock holding
-		s := db.StockHolding{
-			UserID: user.ID,
-			StockSymbol: stockSymbol,
+		stockHolding, err := db.StockHoldingFromUserAndStockSym(dbw, user.ID, stockSymbol)
+		if err != nil {
+			fmt.Fprintf(w, "Error:", err)
+			errorEventParams := map[string]string {
+				"command": "SET_SELL_TRIGGER",
+				"stockSymbol": stockSymbol,
+				"errorMessage": err.Error(),
+			}
+			logErrorEvent(errorEventParams, &user)
+			return
 		}
-		var stockHolding db.StockHolding
-		dbw.Conn.First(&stockHolding, &s)
 
 		difference := int(stockHolding.Number)-int(numStocks)
 		if difference < 0 {
