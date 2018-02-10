@@ -1,6 +1,7 @@
 package main
 
 import(
+	"strconv"
 	"app/db"
 	"fmt"
 	"net/http"
@@ -174,7 +175,7 @@ func logSetBuyAmountCommand(txNum uint, stockSymbol string, user db.User) {
 	commandLogItem.Username = user.Username
 	commandLogItem.StockSymbol = stockSymbol
 	commandLogItem.Funds = centsToDollarsString(user.CurrentMoney)
-	commandLogItem.TransactionNum = string(txNum)
+	commandLogItem.TransactionNum = strconv.FormatUint(uint64(txNum), 10)
 	username := user.Username
 
 	commandLogItem.SaveRecord(dbw, username)
@@ -186,7 +187,7 @@ func logCancelSetBuyCommand(txNum uint, stockSymbol string, user db.User) {
 	commandLogItem.Username = user.Username
 	commandLogItem.StockSymbol = stockSymbol
 	commandLogItem.Funds = centsToDollarsString(user.CurrentMoney)
-	commandLogItem.TransactionNum = string(txNum)
+	commandLogItem.TransactionNum = strconv.FormatUint(uint64(txNum), 10)
 	username := user.Username
 
 	commandLogItem.SaveRecord(dbw, username)
@@ -198,7 +199,7 @@ func logSetBuyTriggerCommand(txNum uint, stockSymbol string, user db.User) {
 	commandLogItem.Username = user.Username
 	commandLogItem.StockSymbol = stockSymbol
 	commandLogItem.Funds = centsToDollarsString(user.CurrentMoney)
-	commandLogItem.TransactionNum = string(txNum)
+	commandLogItem.TransactionNum = strconv.FormatUint(uint64(txNum), 10)
 	username := user.Username
 
 	commandLogItem.SaveRecord(dbw, username)

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math"
 	"net/http"
+	"strconv"
 )
 
 func (handler *Handler) sell(w http.ResponseWriter, r *http.Request) {
@@ -242,7 +243,7 @@ func logSellCommand(txNum uint, stockSymbol string, user *db.User) {
 	commandLogItem.Username = user.Username
 	commandLogItem.StockSymbol = stockSymbol
 	commandLogItem.Funds = centsToDollarsString(user.CurrentMoney)
-	commandLogItem.TransactionNum = string(txNum)
+	commandLogItem.TransactionNum = strconv.FormatUint(uint64(txNum), 10)
 	username := user.Username
 
 	commandLogItem.SaveRecord(dbw, username)
@@ -255,7 +256,7 @@ func logCommitSellCommand(txNum uint, stockSymbol string, user *db.User) {
 	commandLogItem.Username = user.Username
 	commandLogItem.StockSymbol = stockSymbol
 	commandLogItem.Funds = centsToDollarsString(user.CurrentMoney)
-	commandLogItem.TransactionNum = string(txNum)
+	commandLogItem.TransactionNum = strconv.FormatUint(uint64(txNum), 10)
 	username := user.Username
 
 	commandLogItem.SaveRecord(dbw, username)
@@ -268,7 +269,7 @@ func logCancelSellCommand(txNum uint, stockSymbol string, user *db.User) {
 	commandLogItem.Username = user.Username
 	commandLogItem.StockSymbol = stockSymbol
 	commandLogItem.Funds = centsToDollarsString(user.CurrentMoney)
-	commandLogItem.TransactionNum = string(txNum)
+	commandLogItem.TransactionNum = strconv.FormatUint(uint64(txNum), 10)
 	username := user.Username
 
 	commandLogItem.SaveRecord(dbw, username)

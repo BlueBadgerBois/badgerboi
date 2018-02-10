@@ -212,7 +212,7 @@ func logSetSellAmountCommand(txNum uint, stockSymbol string, user db.User) {
 	commandLogItem.Username = user.Username
 	commandLogItem.StockSymbol = stockSymbol
 	commandLogItem.Funds = centsToDollarsString(user.CurrentMoney)
-	commandLogItem.TransactionNum = string(txNum)
+	commandLogItem.TransactionNum = strconv.FormatUint(uint64(txNum), 10)
 	username := user.Username
 
 	commandLogItem.SaveRecord(dbw, username)
@@ -224,7 +224,7 @@ func logCancelSetSellCommand(txNum uint, stockSymbol string, user db.User) {
 	commandLogItem.Username = user.Username
 	commandLogItem.StockSymbol = stockSymbol
 	commandLogItem.Funds = centsToDollarsString(user.CurrentMoney)
-	commandLogItem.TransactionNum = string(txNum)
+	commandLogItem.TransactionNum = strconv.FormatUint(uint64(txNum), 10)
 	username := user.Username
 
 	commandLogItem.SaveRecord(dbw, username)
@@ -236,7 +236,7 @@ func logSetSellTriggerCommand(txNum uint, stockSymbol string, user db.User) {
 	commandLogItem.Username = user.Username
 	commandLogItem.StockSymbol = stockSymbol
 	commandLogItem.Funds = centsToDollarsString(user.CurrentMoney)
-	commandLogItem.TransactionNum = string(txNum)
+	commandLogItem.TransactionNum = strconv.FormatUint(uint64(txNum), 10)
 	username := user.Username
 
 	commandLogItem.SaveRecord(dbw, username)

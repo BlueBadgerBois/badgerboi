@@ -141,7 +141,7 @@ func logErrorEvent(txNum uint, params map[string]string, user *db.User) {
 	errorEventLogItem.StockSymbol = params["stockSymbol"]
 	errorEventLogItem.Funds = centsToDollarsString(user.CurrentMoney)
 	errorEventLogItem.ErrorMessage = params["errorMessage"]
-	errorEventLogItem.TransactionNum = string(txNum)
+	errorEventLogItem.TransactionNum = strconv.FormatUint(uint64(txNum), 10)
 	username := user.Username
 
 	errorEventLogItem.SaveRecord(dbw, username)
@@ -154,7 +154,7 @@ func logAddCommand(txNum uint, user *db.User) {
 	commandLogItem.Username = user.Username
 	commandLogItem.StockSymbol = ""
 	commandLogItem.Funds = centsToDollarsString(user.CurrentMoney)
-	commandLogItem.TransactionNum = string(txNum)
+	commandLogItem.TransactionNum = strconv.FormatUint(uint64(txNum), 10)
 	username := user.Username
 
 	commandLogItem.SaveRecord(dbw, username)
@@ -165,7 +165,7 @@ func logAccountTransaction(txNum uint, user *db.User, action string) {
 	transactionLogItem.Action = action
 	transactionLogItem.Username = user.Username
 	transactionLogItem.Funds = centsToDollarsString(user.CurrentMoney)
-	transactionLogItem.TransactionNum = string(txNum)
+	transactionLogItem.TransactionNum = strconv.FormatUint(uint64(txNum), 10)
 	username := user.Username
 
 	transactionLogItem.SaveRecord(dbw, username)
@@ -178,7 +178,7 @@ func logSystemEvent(txNum uint, user *db.User, params map[string]string) {
 	systemEventLogItem.Filename = params["filename"]
 	systemEventLogItem.Username = user.Username
 	systemEventLogItem.Funds = centsToDollarsString(user.CurrentMoney)
-	systemEventLogItem.TransactionNum = string(txNum)
+	systemEventLogItem.TransactionNum = strconv.FormatUint(uint64(txNum), 10)
 	username := user.Username
 
 	systemEventLogItem.SaveRecord(dbw, username)
@@ -190,7 +190,7 @@ func logSummaryCommand(txNum uint, user *db.User) {
 	commandLogItem.Username = user.Username
 	commandLogItem.StockSymbol = "" // No stock symbol for a summary
 	commandLogItem.Funds = centsToDollarsString(user.CurrentMoney)
-	commandLogItem.TransactionNum = string(txNum)
+	commandLogItem.TransactionNum = strconv.FormatUint(uint64(txNum), 10)
 	username := user.Username
 
 	commandLogItem.SaveRecord(dbw, username)
@@ -228,7 +228,7 @@ func logQuoteServer(txNum uint, params map[string]string) {
 	quoteLogItem.Username = params["username"]
 	quoteLogItem.QuoteServerTime = params["quoteServerTime"]
 	quoteLogItem.Cryptokey = params["cryptokey"]
-	quoteLogItem.TransactionNum = string(txNum)
+	quoteLogItem.TransactionNum = strconv.FormatUint(uint64(txNum), 10)
 	username := params["username"]
 
 	quoteLogItem.SaveRecord(dbw, username)
@@ -241,7 +241,7 @@ func logQuoteCommand(txNum uint, params map[string]string, user *db.User) {
 	commandLogItem.Username = params["username"]
 	commandLogItem.StockSymbol = params["stockSymbol"]
 	commandLogItem.Funds = centsToDollarsString(user.CurrentMoney)
-	commandLogItem.TransactionNum = string(txNum)
+	commandLogItem.TransactionNum = strconv.FormatUint(uint64(txNum), 10)
 	username := params["username"]
 
 	commandLogItem.SaveRecord(dbw, username)
