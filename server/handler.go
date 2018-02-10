@@ -267,7 +267,6 @@ func authUser(uname string) (db.User, error) {
 	if dbw.Conn.First(&user, &u).RecordNotFound() {
 		return user, errors.New("User not found!")
 	}
-	fmt.Println("authUser id: ", user.ID)
 	return user, nil
 }
 

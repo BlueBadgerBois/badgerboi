@@ -2,6 +2,7 @@ package main
 
 import (
 	"app/db"
+	"fmt"
 	"log"
 	"time"
 )
@@ -60,7 +61,7 @@ func checkTriggers() {
 			tx.Commit()
 			// ========= END TRANSACTION =========
 
-		} else if trig.Type == "sell" && 
+		} else if trig.Type == "sell" &&
 				quotePrice > trig.PriceThreshold &&
 				trig.PriceThreshold != 0 {
 

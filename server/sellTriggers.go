@@ -86,9 +86,17 @@ func (handler *Handler) cancelSetSell(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		t := db.Trigger{UserID: user.ID, StockSym: stockSymbol}
-		var trig db.Trigger
-		dbw.Conn.First(&trig, &t)
+		trig, err := db.TriggerFromUserAndStockSym(dbw, user.ID, stockSymbol, "sell")
+		if err != nil {
+			fmt.Fprintf(w, "Error: ", err)
+			errorEventParams := map[string]string {
+				"command": "CANCEL_SET_SELL",
+				"stockSymbol": stockSymbol,
+				"errorMessage": err.Error(),
+			}
+			logErrorEvent(errorEventParams, &user)
+			return
+		}
 
 		// find the stock holding associated with this
 		s := db.StockHolding{
@@ -138,13 +146,17 @@ func (handler *Handler) setSellTrigger(w http.ResponseWriter, r *http.Request) {
 
 		thresholdInCents := stringMoneyToCents(threshold);
 
-		t := db.Trigger {
-			UserID: user.ID,
-			StockSym: stockSymbol,
-			Type: "sell",
+		trig, err := db.TriggerFromUserAndStockSym(dbw, user.ID, stockSymbol, "sell")
+		if err != nil {
+			fmt.Fprintf(w, "Error: ", err)
+			errorEventParams := map[string]string {
+				"command": "SET_SELL_TRIGGER",
+				"stockSymbol": stockSymbol,
+				"errorMessage": err.Error(),
+			}
+			logErrorEvent(errorEventParams, &user)
+			return
 		}
-		var trig db.Trigger
-		dbw.Conn.First(&trig, &t)
 
 		// how much stock do we need to hit trigger amount?
 		numStocks := uint(math.Ceil(float64(trig.Amount)/float64(thresholdInCents)))

@@ -1,7 +1,8 @@
 package db
 
 import (
-  "github.com/jinzhu/gorm"
+	"errors"
+	"github.com/jinzhu/gorm"
 )
 
 type Trigger struct {
@@ -28,4 +29,20 @@ func BuildSellTrigger(user *User) Trigger {
     Type: "sell",
   }
   return sellTrigger
+}
+
+func TriggerFromUserAndStockSym(dbw *DBW, userId uint, stockSym string, trigType string ) (*Trigger, error) {
+	var trig Trigger
+
+	t := Trigger {
+		UserID: userId,
+		StockSym: stockSym,
+		Type: trigType,
+	}
+
+	if dbw.Conn.First(&trig, &t).RecordNotFound() {
+		return nil, errors.New("Error: " + trigType + " trigger not found for user " + string(userId))
+	}
+
+	return &trig, nil
 }

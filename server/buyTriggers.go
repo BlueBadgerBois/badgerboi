@@ -98,15 +98,15 @@ func (handler *Handler) cancelSetBuy(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		t := db.Trigger{
-			UserID: user.ID,
-			StockSym: stockSymbol,
-		}
-
-		var trig db.Trigger;
-		if dbw.Conn.First(&trig, &t).RecordNotFound() {
-			fmt.Fprintf(w,
-				"The trigger doesn't exist")
+		trig, err := db.TriggerFromUserAndStockSym(dbw, user.ID, stockSymbol, "buy")
+		if err != nil {
+			fmt.Fprintf(w, "Error: ", err)
+			errorEventParams := map[string]string {
+				"command": "BUY",
+				"stockSymbol": stockSymbol,
+				"errorMessage": err.Error(),
+			}
+			logErrorEvent(errorEventParams, &user)
 			return
 		}
 
@@ -149,13 +149,17 @@ func (handler *Handler) setBuyTrigger(w http.ResponseWriter, r *http.Request) {
 
 		thresholdInCents := stringMoneyToCents(threshold);
 
-		t := db.Trigger {
-			UserID: user.ID,
-			StockSym: stockSymbol,
-			Type: "buy",
+		trig, err := db.TriggerFromUserAndStockSym(dbw, user.ID, stockSymbol, "buy")
+		if err != nil {
+			fmt.Fprintf(w, "Error: ", err)
+			errorEventParams := map[string]string {
+				"command": "BUY",
+				"stockSymbol": stockSymbol,
+				"errorMessage": err.Error(),
+			}
+			logErrorEvent(errorEventParams, &user)
+			return
 		}
-		var trig db.Trigger
-		dbw.Conn.First(&trig, &t)
 
 		trig.PriceThreshold = thresholdInCents
 
