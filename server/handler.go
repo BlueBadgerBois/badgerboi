@@ -22,6 +22,9 @@ type Handler struct {}
 
 func (handler *Handler) summary(w http.ResponseWriter, r *http.Request) {
 	// TODO iterate through all holdings. Need to timplement buy first
+
+	txNum := db.NewTxNum(dbw)
+
 	if r.Method == "POST" {
 		r.ParseForm()
 		username := r.Form.Get("username")
@@ -34,7 +37,7 @@ func (handler *Handler) summary(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		logSummaryCommand(&user)
+		logSummaryCommand(txNum, &user)
 
 		fmt.Fprintf(w,
 		"Summary:\n\n" +
@@ -44,6 +47,7 @@ func (handler *Handler) summary(w http.ResponseWriter, r *http.Request) {
 }
 
 func (handler *Handler) add(w http.ResponseWriter, r *http.Request) {
+	txNum := db.NewTxNum(dbw)
 	if r.Method == "POST" {
 		r.ParseForm()
 		username := r.Form.Get("username")
@@ -58,8 +62,8 @@ func (handler *Handler) add(w http.ResponseWriter, r *http.Request) {
 		user.CurrentMoney = newAmount
 		dbw.Conn.Save(&user)
 
-		logAddCommand(user)
-		logAccountTransaction(user, "add")
+		logAddCommand(txNum, user)
+		logAccountTransaction(txNum, user, "add")
 
 		fmt.Fprintf(w,
 		"Success!\n\n" +
@@ -82,16 +86,17 @@ func (handler *Handler) index(w http.ResponseWriter, r *http.Request) {
 }
 
 func (handler *Handler) quote(w http.ResponseWriter, r *http.Request) {
+	txNum := db.NewTxNum(dbw)
 	if r.Method == "POST" {
 		r.ParseForm()
 		username := r.Form.Get("username")
 		stockSymbol := r.Form.Get("stocksym")
 
-		responseMap := getQuoteFromServer(username, stockSymbol)
+		responseMap := getQuoteFromServer(txNum, username, stockSymbol)
 
 		user := db.UserFromUsernameOrCreate(dbw, responseMap["username"])
 
-		logQuoteCommand(responseMap, user)
+		logQuoteCommand(txNum, responseMap, user)
 
 		fmt.Fprintf(w, "Success!\n\n Quote Server Response: %v", responseMap)
 	}
@@ -115,12 +120,12 @@ func (handler *Handler) dumplog(w http.ResponseWriter, r *http.Request) {
 
 		xmlLog := writeLogsToFile(outfile, log_items)
 		w.Header().Set("Content-Description", "File Transfer")
-    w.Header().Set("Content-Transfer-Encoding", "binary")
+		w.Header().Set("Content-Transfer-Encoding", "binary")
 		w.Header().Set("Content-Disposition", "attachment; filename=" + outfile)
 		w.Header().Set("Content-Type", "application/octet-stream")
 		http.ServeFile(w, r, "./" + outfile)
 
-		fmt.Fprintf(w, 
+		fmt.Fprintf(w,
 			"Username: " + username + "\n" +
 			"Outfile: " + outfile + "\n" +
 			"Logfile contents:\n")
@@ -129,63 +134,63 @@ func (handler *Handler) dumplog(w http.ResponseWriter, r *http.Request) {
 }
 
 // Save an ErrorEventLogItem
-func logErrorEvent(params map[string]string, user *db.User) {
+func logErrorEvent(txNum uint, params map[string]string, user *db.User) {
 	errorEventLogItem := db.BuildErrorEventLogItemStruct()
 	errorEventLogItem.Command = params["command"]
 	errorEventLogItem.Username = user.Username
 	errorEventLogItem.StockSymbol = params["stockSymbol"]
 	errorEventLogItem.Funds = centsToDollarsString(user.CurrentMoney)
 	errorEventLogItem.ErrorMessage = params["errorMessage"]
-	errorEventLogItem.TransactionNum = strconv.Itoa(currentTxNum)
+	errorEventLogItem.TransactionNum = string(txNum)
 	username := user.Username
 
 	errorEventLogItem.SaveRecord(dbw, username)
 }
 
 // Save a UserCommandLogItem for an ADD command
-func logAddCommand(user *db.User) {
+func logAddCommand(txNum uint, user *db.User) {
 	commandLogItem := db.BuildUserCommandLogItemStruct()
 	commandLogItem.Command = "ADD"
 	commandLogItem.Username = user.Username
 	commandLogItem.StockSymbol = ""
 	commandLogItem.Funds = centsToDollarsString(user.CurrentMoney)
-	commandLogItem.TransactionNum = strconv.Itoa(currentTxNum)
+	commandLogItem.TransactionNum = string(txNum)
 	username := user.Username
 
 	commandLogItem.SaveRecord(dbw, username)
 }
 
-func logAccountTransaction(user *db.User, action string) {
+func logAccountTransaction(txNum uint, user *db.User, action string) {
 	transactionLogItem := db.BuildAccountTransactionLogItemStruct()
 	transactionLogItem.Action = action
 	transactionLogItem.Username = user.Username
 	transactionLogItem.Funds = centsToDollarsString(user.CurrentMoney)
-	transactionLogItem.TransactionNum = strconv.Itoa(currentTxNum)
+	transactionLogItem.TransactionNum = string(txNum)
 	username := user.Username
 
 	transactionLogItem.SaveRecord(dbw, username)
 }
 
-func logSystemEvent(user *db.User, params map[string]string) {
+func logSystemEvent(txNum uint, user *db.User, params map[string]string) {
 	systemEventLogItem := db.BuildSystemEventLogItemStruct()
 	systemEventLogItem.Command = params["command"]
 	systemEventLogItem.StockSymbol = params["stockSymbol"]
 	systemEventLogItem.Filename = params["filename"]
 	systemEventLogItem.Username = user.Username
 	systemEventLogItem.Funds = centsToDollarsString(user.CurrentMoney)
-	systemEventLogItem.TransactionNum = strconv.Itoa(currentTxNum)
+	systemEventLogItem.TransactionNum = string(txNum)
 	username := user.Username
 
 	systemEventLogItem.SaveRecord(dbw, username)
 }
 
-func logSummaryCommand(user *db.User) {
+func logSummaryCommand(txNum uint, user *db.User) {
 	commandLogItem := db.BuildUserCommandLogItemStruct()
 	commandLogItem.Command = "DISPLAY_SUMMARY"
 	commandLogItem.Username = user.Username
 	commandLogItem.StockSymbol = "" // No stock symbol for a summary
 	commandLogItem.Funds = centsToDollarsString(user.CurrentMoney)
-	commandLogItem.TransactionNum = strconv.Itoa(currentTxNum)
+	commandLogItem.TransactionNum = string(txNum)
 	username := user.Username
 
 	commandLogItem.SaveRecord(dbw, username)
@@ -197,7 +202,7 @@ func getQuoteServerUrl() string {
 }
 
 // Fetch a quote from the quote server and log it
-func getQuoteFromServer(username string, stockSymbol string) map[string]string {
+func getQuoteFromServer(txNum uint, username string, stockSymbol string) map[string]string {
 	quoteServerUrl := getQuoteServerUrl()
 	conn, err := net.Dial("tcp", quoteServerUrl)
 
@@ -210,33 +215,33 @@ func getQuoteFromServer(username string, stockSymbol string) map[string]string {
 
 	responseMap := quoteResponseToMap(message)
 
-	logQuoteServer(responseMap)
+	logQuoteServer(txNum, responseMap)
 
 	return responseMap
 }
 
 // Save a QuoteServerLogItem
-func logQuoteServer(params map[string]string) {
+func logQuoteServer(txNum uint, params map[string]string) {
 	quoteLogItem := db.BuildQuoteServerLogItemStruct()
 	quoteLogItem.Price = params["price"]
 	quoteLogItem.StockSymbol = params["stockSymbol"]
 	quoteLogItem.Username = params["username"]
 	quoteLogItem.QuoteServerTime = params["quoteServerTime"]
 	quoteLogItem.Cryptokey = params["cryptokey"]
-	quoteLogItem.TransactionNum = strconv.Itoa(currentTxNum)
+	quoteLogItem.TransactionNum = string(txNum)
 	username := params["username"]
 
 	quoteLogItem.SaveRecord(dbw, username)
 }
 
 // Save a UserCommandLogItem for a QUOTE command
-func logQuoteCommand(params map[string]string, user *db.User) {
+func logQuoteCommand(txNum uint, params map[string]string, user *db.User) {
 	commandLogItem := db.BuildUserCommandLogItemStruct()
 	commandLogItem.Command = "QUOTE"
 	commandLogItem.Username = params["username"]
 	commandLogItem.StockSymbol = params["stockSymbol"]
 	commandLogItem.Funds = centsToDollarsString(user.CurrentMoney)
-	commandLogItem.TransactionNum = strconv.Itoa(currentTxNum)
+	commandLogItem.TransactionNum = string(txNum)
 	username := params["username"]
 
 	commandLogItem.SaveRecord(dbw, username)

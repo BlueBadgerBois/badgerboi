@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"math"
 	"net/http"
-	"strconv"
 )
 
 func (handler *Handler) sell(w http.ResponseWriter, r *http.Request) {
+	txNum := db.NewTxNum(dbw)
 	// Sell the minimum number of stocks needed to make the revenue given in sellAmount. 
 	if r.Method == "POST" {
 		r.ParseForm()
@@ -21,11 +21,11 @@ func (handler *Handler) sell(w http.ResponseWriter, r *http.Request) {
 
 		user := db.UserFromUsernameOrCreate(dbw, username)
 
-		logSellCommand(stockSymbol, user)
+		logSellCommand(txNum, stockSymbol, user)
 
-		quoteResponseMap := getQuoteFromServer(username, stockSymbol)
+		quoteResponseMap := getQuoteFromServer(txNum, username, stockSymbol)
 
-		err, _ := createSellTransaction(user, stockSymbol, amountToSellInCents,
+		err, _ := createSellTransaction(txNum, user, stockSymbol, amountToSellInCents,
 		stringMoneyToCents(quoteResponseMap["price"]))
 
 		if err != nil {
@@ -43,6 +43,7 @@ func (handler *Handler) sell(w http.ResponseWriter, r *http.Request) {
 }
 
 func (handler *Handler) commitSell(w http.ResponseWriter, r *http.Request) {
+	txNum := db.NewTxNum(dbw)
 	if r.Method == "POST" {
 		r.ParseForm()
 		username := r.Form.Get("username")
@@ -55,7 +56,7 @@ func (handler *Handler) commitSell(w http.ResponseWriter, r *http.Request) {
 				"stockSymbol": "",
 				"errorMessage": err.Error(),
 			}
-			logErrorEvent(errorEventParams, user)
+			logErrorEvent(txNum, errorEventParams, user)
 			return
 		}
 
@@ -67,11 +68,11 @@ func (handler *Handler) commitSell(w http.ResponseWriter, r *http.Request) {
 				"stockSymbol": "",
 				"errorMessage": err.Error(),
 			}
-			logErrorEvent(errorEventParams, user)
+			logErrorEvent(txNum, errorEventParams, user)
 			return
 		}
 
-		logCommitSellCommand(transactionToCommit.StockSymbol, user)
+		logCommitSellCommand(txNum, transactionToCommit.StockSymbol, user)
 
 		// Check to make sure the transaction is not stale
 		// later we need to make the job server just update the quote price
@@ -85,7 +86,7 @@ func (handler *Handler) commitSell(w http.ResponseWriter, r *http.Request) {
 				"stockSymbol": transactionToCommit.StockSymbol,
 				"errorMessage": errMsg,
 			}
-			logErrorEvent(errorEventParams, user)
+			logErrorEvent(txNum, errorEventParams, user)
 			return
 		}
 
@@ -111,7 +112,7 @@ func (handler *Handler) commitSell(w http.ResponseWriter, r *http.Request) {
 				"stockSymbol": transactionToCommit.StockSymbol,
 				"errorMessage": errMsg,
 			}
-			logErrorEvent(errorEventParams, user)
+			logErrorEvent(txNum, errorEventParams, user)
 			fmt.Fprintf(w, errMsg)
 			return
 		}
@@ -135,6 +136,7 @@ func (handler *Handler) commitSell(w http.ResponseWriter, r *http.Request) {
 }
 
 func (handler *Handler) cancelSell(w http.ResponseWriter, r *http.Request) {
+	txNum := db.NewTxNum(dbw)
 	if r.Method == "POST" {
 		r.ParseForm()
 		username := r.Form.Get("username")
@@ -147,7 +149,7 @@ func (handler *Handler) cancelSell(w http.ResponseWriter, r *http.Request) {
 				"stockSymbol": "",
 				"errorMessage": err.Error(),
 			}
-			logErrorEvent(errorEventParams, user)
+			logErrorEvent(txNum, errorEventParams, user)
 			return
 		}
 
@@ -159,12 +161,12 @@ func (handler *Handler) cancelSell(w http.ResponseWriter, r *http.Request) {
 				"stockSymbol": "",
 				"errorMessage": err.Error(),
 			}
-			logErrorEvent(errorEventParams, user)
+			logErrorEvent(txNum, errorEventParams, user)
 
 			return
 		}
 
-		logCancelSellCommand(transactionToCancel.StockSymbol, user)
+		logCancelSellCommand(txNum, transactionToCancel.StockSymbol, user)
 
 		// later we need to make the job server just update the quote price
 		currentTime := dbw.GetCurrentTime()
@@ -177,7 +179,7 @@ func (handler *Handler) cancelSell(w http.ResponseWriter, r *http.Request) {
 				"stockSymbol": transactionToCancel.StockSymbol,
 				"errorMessage": errMsg,
 			}
-			logErrorEvent(errorEventParams, user)
+			logErrorEvent(txNum, errorEventParams, user)
 
 			return
 		}
@@ -191,7 +193,7 @@ func (handler *Handler) cancelSell(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func createSellTransaction(user *db.User, stockSymbol string, amountToSellInCents uint, quotedPriceInCents uint) (error, *db.Transaction) {
+func createSellTransaction(txNum uint, user *db.User, stockSymbol string, amountToSellInCents uint, quotedPriceInCents uint) (error, *db.Transaction) {
 	numStocksNeeded := stocksNeededToGetAmountInCents(amountToSellInCents, quotedPriceInCents)
 
 	// create a transaction record
@@ -215,7 +217,7 @@ func createSellTransaction(user *db.User, stockSymbol string, amountToSellInCent
 			"stockSymbol": stockSymbol,
 			"errorMessage": errMsg,
 		}
-		logErrorEvent(errorEventParams, user)
+		logErrorEvent(txNum, errorEventParams, user)
 
 		return errors.New(errMsg), sellTransaction
 	}
@@ -234,39 +236,39 @@ func moneyInCentsForStocks(numStocks uint, stockPrice uint) uint {
 
 
 // Save a UserCommandLogItem for a SELL command
-func logSellCommand(stockSymbol string, user *db.User) {
+func logSellCommand(txNum uint, stockSymbol string, user *db.User) {
 	commandLogItem := db.BuildUserCommandLogItemStruct()
 	commandLogItem.Command = "SELL"
 	commandLogItem.Username = user.Username
 	commandLogItem.StockSymbol = stockSymbol
 	commandLogItem.Funds = centsToDollarsString(user.CurrentMoney)
-	commandLogItem.TransactionNum = strconv.Itoa(currentTxNum)
+	commandLogItem.TransactionNum = string(txNum)
 	username := user.Username
 
 	commandLogItem.SaveRecord(dbw, username)
 }
 
 // Save a UserCommandLogItem for a COMMIT_SELL command
-func logCommitSellCommand(stockSymbol string, user *db.User) {
+func logCommitSellCommand(txNum uint, stockSymbol string, user *db.User) {
 	commandLogItem := db.BuildUserCommandLogItemStruct()
 	commandLogItem.Command = "COMMIT_SELL"
 	commandLogItem.Username = user.Username
 	commandLogItem.StockSymbol = stockSymbol
 	commandLogItem.Funds = centsToDollarsString(user.CurrentMoney)
-	commandLogItem.TransactionNum = strconv.Itoa(currentTxNum)
+	commandLogItem.TransactionNum = string(txNum)
 	username := user.Username
 
 	commandLogItem.SaveRecord(dbw, username)
 }
 
 // Save a UserCommandLogItem for a COMMIT_SELL command
-func logCancelSellCommand(stockSymbol string, user *db.User) {
+func logCancelSellCommand(txNum uint, stockSymbol string, user *db.User) {
 	commandLogItem := db.BuildUserCommandLogItemStruct()
 	commandLogItem.Command = "CANCEL_SELL"
 	commandLogItem.Username = user.Username
 	commandLogItem.StockSymbol = stockSymbol
 	commandLogItem.Funds = centsToDollarsString(user.CurrentMoney)
-	commandLogItem.TransactionNum = strconv.Itoa(currentTxNum)
+	commandLogItem.TransactionNum = string(txNum)
 	username := user.Username
 
 	commandLogItem.SaveRecord(dbw, username)

@@ -10,7 +10,7 @@ import (
 
 var dbw = &db.DBW{} // this is global so everything can see it
 var handler = Handler{}
-var currentTxNum int
+// var currentTxNum int
 type fn func(http.ResponseWriter, *http.Request)
 
 const WEB_ROLE = "web"
@@ -68,8 +68,8 @@ func runAsWebServer() {
 func newTransaction(next fn) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request){
 		nextHandler := http.HandlerFunc(next)
-		txNum := db.NewTxNum(dbw)
-		currentTxNum = txNum.TransactionId
+		// txNum := db.NewTxNum(dbw)
+		// currentTxNum = txNum
 		nextHandler.ServeHTTP(w, r)
 	})
 }

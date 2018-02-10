@@ -9,6 +9,8 @@ import(
 )
 
 func (handler *Handler) setSellAmount(w http.ResponseWriter, r *http.Request) {
+	txNum := db.NewTxNum(dbw)
+
 	if r.Method == "POST" {
 		r.ParseForm()
 		username := r.Form.Get("username")
@@ -16,7 +18,7 @@ func (handler *Handler) setSellAmount(w http.ResponseWriter, r *http.Request) {
 		sellAmount := r.Form.Get("sellAmount")
 
 		user, err := authUser(username)
-		logSetSellAmountCommand(stockSymbol, user)
+		logSetSellAmountCommand(txNum, stockSymbol, user)
 
 		if err != nil {
 			errorEventParams := map[string]string {
@@ -24,7 +26,7 @@ func (handler *Handler) setSellAmount(w http.ResponseWriter, r *http.Request) {
 				"stockSymbol": stockSymbol,
 				"errorMessage": err.Error(),
 			}
-			logErrorEvent(errorEventParams, &user)
+			logErrorEvent(txNum, errorEventParams, &user)
 			fmt.Fprintf(w, "Error: ", err)
 			return
 		}
@@ -47,7 +49,7 @@ func (handler *Handler) setSellAmount(w http.ResponseWriter, r *http.Request) {
 		amountToSell := stringMoneyToCents(sellAmount)
 
 		// get the current quoted price
-		quoteResponse := getQuoteFromServer(username, stockSymbol)
+		quoteResponse := getQuoteFromServer(txNum, username, stockSymbol)
 		quotePrice := stringMoneyToCents(quoteResponse["price"])
 
 		numStocks, _ := convertMoneyToStock(amountToSell, quotePrice)
@@ -73,13 +75,15 @@ func (handler *Handler) setSellAmount(w http.ResponseWriter, r *http.Request) {
 }
 
 func (handler *Handler) cancelSetSell(w http.ResponseWriter, r *http.Request) {
+	txNum := db.NewTxNum(dbw)
+
 	if r.Method == "POST" {
 		r.ParseForm()
 		username := r.Form.Get("username")
 		stockSymbol := r.Form.Get("stockSymbol")
 
 		user, err := authUser(username)
-		logCancelSetSellCommand(stockSymbol, user)
+		logCancelSetSellCommand(txNum, stockSymbol, user)
 
 		if err != nil {
 			fmt.Fprintf(w, "Error: ", err)
@@ -94,7 +98,7 @@ func (handler *Handler) cancelSetSell(w http.ResponseWriter, r *http.Request) {
 				"stockSymbol": stockSymbol,
 				"errorMessage": err.Error(),
 			}
-			logErrorEvent(errorEventParams, &user)
+			logErrorEvent(txNum, errorEventParams, &user)
 			return
 		}
 
@@ -107,7 +111,7 @@ func (handler *Handler) cancelSetSell(w http.ResponseWriter, r *http.Request) {
 				"stockSymbol": stockSymbol,
 				"errorMessage": err.Error(),
 			}
-			logErrorEvent(errorEventParams, &user)
+			logErrorEvent(txNum, errorEventParams, &user)
 			return
 		}
 
@@ -135,6 +139,8 @@ func (handler *Handler) cancelSetSell(w http.ResponseWriter, r *http.Request) {
 }
 
 func (handler *Handler) setSellTrigger(w http.ResponseWriter, r *http.Request) {
+	txNum := db.NewTxNum(dbw)
+
 	if r.Method == "POST" {
 		r.ParseForm()
 		username := r.Form.Get("username")
@@ -142,7 +148,7 @@ func (handler *Handler) setSellTrigger(w http.ResponseWriter, r *http.Request) {
 		threshold := r.Form.Get("threshold")
 
 		user, err := authUser(username)
-		logSetSellTriggerCommand(stockSymbol, user)
+		logSetSellTriggerCommand(txNum, stockSymbol, user)
 
 		if err != nil {
 			fmt.Fprintf(w, "Error: ", err)
@@ -159,7 +165,7 @@ func (handler *Handler) setSellTrigger(w http.ResponseWriter, r *http.Request) {
 				"stockSymbol": stockSymbol,
 				"errorMessage": err.Error(),
 			}
-			logErrorEvent(errorEventParams, &user)
+			logErrorEvent(txNum, errorEventParams, &user)
 			return
 		}
 
@@ -175,7 +181,7 @@ func (handler *Handler) setSellTrigger(w http.ResponseWriter, r *http.Request) {
 				"stockSymbol": stockSymbol,
 				"errorMessage": err.Error(),
 			}
-			logErrorEvent(errorEventParams, &user)
+			logErrorEvent(txNum, errorEventParams, &user)
 			return
 		}
 
@@ -200,37 +206,37 @@ func (handler *Handler) setSellTrigger(w http.ResponseWriter, r *http.Request) {
 }
 
 //logging functions here
-func logSetSellAmountCommand(stockSymbol string, user db.User) {
+func logSetSellAmountCommand(txNum uint, stockSymbol string, user db.User) {
 	commandLogItem := db.BuildUserCommandLogItemStruct()
 	commandLogItem.Command = "SET_SELL_AMOUNT"
 	commandLogItem.Username = user.Username
 	commandLogItem.StockSymbol = stockSymbol
 	commandLogItem.Funds = centsToDollarsString(user.CurrentMoney)
-	commandLogItem.TransactionNum = strconv.Itoa(currentTxNum)
+	commandLogItem.TransactionNum = string(txNum)
 	username := user.Username
 
 	commandLogItem.SaveRecord(dbw, username)
 }
 
-func logCancelSetSellCommand(stockSymbol string, user db.User) {
+func logCancelSetSellCommand(txNum uint, stockSymbol string, user db.User) {
 	commandLogItem := db.BuildUserCommandLogItemStruct()
 	commandLogItem.Command = "CANCEL_SET_SELL"
 	commandLogItem.Username = user.Username
 	commandLogItem.StockSymbol = stockSymbol
 	commandLogItem.Funds = centsToDollarsString(user.CurrentMoney)
-	commandLogItem.TransactionNum = strconv.Itoa(currentTxNum)
+	commandLogItem.TransactionNum = string(txNum)
 	username := user.Username
 
 	commandLogItem.SaveRecord(dbw, username)
 }
 
-func logSetSellTriggerCommand(stockSymbol string, user db.User) {
+func logSetSellTriggerCommand(txNum uint, stockSymbol string, user db.User) {
 	commandLogItem := db.BuildUserCommandLogItemStruct()
 	commandLogItem.Command = "SET_SELL_TRIGGER"
 	commandLogItem.Username = user.Username
 	commandLogItem.StockSymbol = stockSymbol
 	commandLogItem.Funds = centsToDollarsString(user.CurrentMoney)
-	commandLogItem.TransactionNum = strconv.Itoa(currentTxNum)
+	commandLogItem.TransactionNum = string(txNum)
 	username := user.Username
 
 	commandLogItem.SaveRecord(dbw, username)

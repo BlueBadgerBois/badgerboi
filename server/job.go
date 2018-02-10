@@ -2,6 +2,7 @@ package main
 
 import (
 	"app/db"
+	"fmt"
 	"log"
 	"time"
 )
@@ -22,7 +23,12 @@ func checkTriggers() {
 		var user db.User
 		dbw.Conn.Where("ID = ?", trig.UserID).First(&user)
 
-		responseMap := getQuoteFromServer(user.Username, trig.StockSym)
+		txNum, err := db.FirstTxNum(dbw)
+		if err != nil {
+			fmt.Println("Error: ", err.Error())
+			return
+		}
+		responseMap := getQuoteFromServer(txNum, user.Username, trig.StockSym)
 
 		quotePrice := stringMoneyToCents(responseMap["price"])
 		if trig.Type == "buy" && quotePrice < trig.PriceThreshold {

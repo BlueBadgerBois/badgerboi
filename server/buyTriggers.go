@@ -4,10 +4,10 @@ import(
 	"app/db"
 	"fmt"
 	"net/http"
-	"strconv"
 )
 
 func (handler *Handler) setBuyAmount(w http.ResponseWriter, r *http.Request) {
+	txNum := db.NewTxNum(dbw)
 	if r.Method == "POST" {
 		r.ParseForm()
 		username := r.Form.Get("username")
@@ -15,7 +15,7 @@ func (handler *Handler) setBuyAmount(w http.ResponseWriter, r *http.Request) {
 		buyAmount := r.Form.Get("buyAmount")
 
 		user, err := authUser(username)
-		logSetBuyAmountCommand(stockSymbol, user)
+		logSetBuyAmountCommand(txNum, stockSymbol, user)
 
 		if err != nil {
 			fmt.Fprintf(w, "Error: ", err)
@@ -24,7 +24,7 @@ func (handler *Handler) setBuyAmount(w http.ResponseWriter, r *http.Request) {
 				"stockSymbol": stockSymbol,
 				"errorMessage": err.Error(),
 			}
-			logErrorEvent(errorEventParams, &user)
+			logErrorEvent(txNum, errorEventParams, &user)
 			return
 		}
 
@@ -51,7 +51,7 @@ func (handler *Handler) setBuyAmount(w http.ResponseWriter, r *http.Request) {
 				"buyAmount" : buyAmount,
 				"errorMessage": "Insufficient funds",
 			}
-			logErrorEvent(errorEventParams, &user)
+			logErrorEvent(txNum, errorEventParams, &user)
 			return
 		} else {
 			user.CurrentMoney -= uint(amountDifference)
@@ -83,13 +83,14 @@ func (handler *Handler) setBuyAmount(w http.ResponseWriter, r *http.Request) {
 }
 
 func (handler *Handler) cancelSetBuy(w http.ResponseWriter, r *http.Request) {
+	txNum := db.NewTxNum(dbw)
 	if r.Method == "POST" {
 		r.ParseForm()
 		username := r.Form.Get("username")
 		stockSymbol := r.Form.Get("stockSymbol")
 
 		user, err := authUser(username)
-		logCancelSetBuyCommand(stockSymbol, user)
+		logCancelSetBuyCommand(txNum, stockSymbol, user)
 
 		if err != nil {
 			fmt.Fprintf(w, "Error: ", err)
@@ -104,7 +105,7 @@ func (handler *Handler) cancelSetBuy(w http.ResponseWriter, r *http.Request) {
 				"stockSymbol": stockSymbol,
 				"errorMessage": err.Error(),
 			}
-			logErrorEvent(errorEventParams, &user)
+			logErrorEvent(txNum, errorEventParams, &user)
 			return
 		}
 
@@ -131,6 +132,7 @@ func (handler *Handler) cancelSetBuy(w http.ResponseWriter, r *http.Request) {
 }
 
 func (handler *Handler) setBuyTrigger(w http.ResponseWriter, r *http.Request) {
+	txNum := db.NewTxNum(dbw)
 	if r.Method == "POST" {
 		r.ParseForm()
 		username := r.Form.Get("username")
@@ -138,7 +140,7 @@ func (handler *Handler) setBuyTrigger(w http.ResponseWriter, r *http.Request) {
 		threshold := r.Form.Get("threshold")
 
 		user, err := authUser(username)
-		logSetBuyTriggerCommand(stockSymbol, user)
+		logSetBuyTriggerCommand(txNum, stockSymbol, user)
 
 		if err != nil {
 			fmt.Fprintf(w, "Error: ", err)
@@ -155,7 +157,7 @@ func (handler *Handler) setBuyTrigger(w http.ResponseWriter, r *http.Request) {
 				"stockSymbol": stockSymbol,
 				"errorMessage": err.Error(),
 			}
-			logErrorEvent(errorEventParams, &user)
+			logErrorEvent(txNum, errorEventParams, &user)
 			return
 		}
 
@@ -166,37 +168,37 @@ func (handler *Handler) setBuyTrigger(w http.ResponseWriter, r *http.Request) {
 }
 
 //logging functions here
-func logSetBuyAmountCommand(stockSymbol string, user db.User) {
+func logSetBuyAmountCommand(txNum uint, stockSymbol string, user db.User) {
 	commandLogItem := db.BuildUserCommandLogItemStruct()
 	commandLogItem.Command = "SET_BUY_AMOUNT"
 	commandLogItem.Username = user.Username
 	commandLogItem.StockSymbol = stockSymbol
 	commandLogItem.Funds = centsToDollarsString(user.CurrentMoney)
-	commandLogItem.TransactionNum = strconv.Itoa(currentTxNum)
+	commandLogItem.TransactionNum = string(txNum)
 	username := user.Username
 
 	commandLogItem.SaveRecord(dbw, username)
 }
 
-func logCancelSetBuyCommand(stockSymbol string, user db.User) {
+func logCancelSetBuyCommand(txNum uint, stockSymbol string, user db.User) {
 	commandLogItem := db.BuildUserCommandLogItemStruct()
 	commandLogItem.Command = "CANCEL_SET_BUY"
 	commandLogItem.Username = user.Username
 	commandLogItem.StockSymbol = stockSymbol
 	commandLogItem.Funds = centsToDollarsString(user.CurrentMoney)
-	commandLogItem.TransactionNum = strconv.Itoa(currentTxNum)
+	commandLogItem.TransactionNum = string(txNum)
 	username := user.Username
 
 	commandLogItem.SaveRecord(dbw, username)
 }
 
-func logSetBuyTriggerCommand(stockSymbol string, user db.User) {
+func logSetBuyTriggerCommand(txNum uint, stockSymbol string, user db.User) {
 	commandLogItem := db.BuildUserCommandLogItemStruct()
 	commandLogItem.Command = "SET_BUY_TRIGGER"
 	commandLogItem.Username = user.Username
 	commandLogItem.StockSymbol = stockSymbol
 	commandLogItem.Funds = centsToDollarsString(user.CurrentMoney)
-	commandLogItem.TransactionNum = strconv.Itoa(currentTxNum)
+	commandLogItem.TransactionNum = string(txNum)
 	username := user.Username
 
 	commandLogItem.SaveRecord(dbw, username)
