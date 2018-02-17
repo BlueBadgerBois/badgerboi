@@ -37,7 +37,7 @@ func StockHoldingFromUserAndStockSym(dbw *DBW, userId uint, stockSymbol string) 
 	}
 	
 	if dbw.Conn.First(&stockHolding, &s).RecordNotFound() {
-		return nil, errors.New("Error: " + stockSymbol + " holding not found for user " + string(userId))
+		return nil, errors.New("Error: " + stockSymbol + " holding not found for user " + strconv.FormatUint(uint64(userId), 10))
 	}
 
 	return &stockHolding, nil

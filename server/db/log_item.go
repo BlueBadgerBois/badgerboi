@@ -115,7 +115,7 @@ type AccountTransactionLogItem struct {
 
 func BuildAccountTransactionLogItemStruct() AccountTransactionLogItem {
 	logItem := AccountTransactionLogItem {
-		LogType: "acountTransaction",
+		LogType: "accountTransaction",
 		Server: "someServer",
 	}
 	return logItem

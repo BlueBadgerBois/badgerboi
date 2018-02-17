@@ -41,7 +41,7 @@ func TriggerFromUserAndStockSym(dbw *DBW, userId uint, stockSym string, trigType
 	}
 
 	if dbw.Conn.First(&trig, &t).RecordNotFound() {
-		return nil, errors.New("Error: " + trigType + " trigger not found for user " + string(userId))
+		return nil, errors.New("Error: " + trigType + " trigger not found for user " + strconv.FormatUint(uint64(userId), 10))
 	}
 
 	return &trig, nil
