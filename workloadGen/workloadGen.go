@@ -321,8 +321,8 @@ func sendRequest (req *http.Request) string {
 }
 
 func main (){
-var testFile string
-
+	
+	var testFile string
 	if len(os.Args) < 2 {
 		log.Println("Default file used: " + defaultTestFile)
 		testFile = defaultTestFile
@@ -342,8 +342,10 @@ var testFile string
 	var commandWithNum []string
 
 	for i := 0; i < len(commands); i++ {
-		commandWithNum = strings.Split(commands[i], " ")
-		commands[i] = commandWithNum[1]
+		if commands[i] != "" {
+			commandWithNum = strings.Split(commands[i], " ")
+			commands[i] = commandWithNum[1]
+		}
 	}
 
 	commandsByUser := divideCommandsByUser(commands)

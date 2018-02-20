@@ -285,6 +285,9 @@ func authUser(uname string) (db.User, error) {
 *   - The leftover money from the transaction
 */
 func convertMoneyToStock(money uint, stockPrice uint) (uint, uint) {
+	if stockPrice == 0 {
+		return 0, money
+	}
 	amnt := (money/stockPrice)
 	leftover := (money%stockPrice)
 	return amnt, leftover
