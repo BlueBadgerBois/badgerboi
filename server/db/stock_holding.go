@@ -3,6 +3,7 @@ package db
 import (
 	"errors"
 	"github.com/jinzhu/gorm"
+	"strconv"
 )
 
 type StockHolding struct {
