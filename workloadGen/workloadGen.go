@@ -13,7 +13,7 @@ import (
 )
 
 const serverUrl = "http://web:8082"
-const defaultTestFile = "100User_testWorkLoad.txt"
+const defaultTestFile = "1000User_testWorkLoad.txt"
 var wg sync.WaitGroup
 
 /*
@@ -22,7 +22,6 @@ var wg sync.WaitGroup
 * in the remaining indexes.
 */
 func divideCommandsByUser (commands []string) [][]string {
-	log.Println("In divideCommandsByUser")
 	commandsByUser := make([][]string, 0)
 	var command []string
 	foundDumplog := false
@@ -71,13 +70,12 @@ func divideCommandsByUser (commands []string) [][]string {
 *	Sends the commands in order to the server
 */
 func sendCommands (commands []string) {
-	log.Println("IN Send Commands")
 	var command []string
 
 	for i := 1; i < len(commands); i++ {
 		command = strings.Split(commands[i], ",")
-		log.Println("----------------------------------------------")
-		log.Println(command)		
+		// log.Println("----------------------------------------------")
+		// log.Println(command)		
 		sendCommand(command)
 	}
 	defer wg.Done()
@@ -269,7 +267,7 @@ func sendCommand (command []string) {
 	}
 
 	if command[0] == "DUMPLOG" {
-		log.Println("In dumplog")
+		// log.Println("In dumplog")
 		data := url.Values{}
 		var outfile string
 
@@ -304,8 +302,7 @@ func sendCommand (command []string) {
 * Handles sending a request and printing the response
 */
 func sendRequest (req *http.Request) string {
-	log.Println("In send request")
-	log.Println("Sending request...")
+	// log.Println("Sending request...")
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	client := &http.Client{}
 	resp, err := client.Do(req)
@@ -316,7 +313,7 @@ func sendRequest (req *http.Request) string {
 	defer resp.Body.Close()
 	log.Println("Response Status:", resp.Status)
 	body, _ := ioutil.ReadAll(resp.Body)
-	log.Println("Response Body:", string(body))
+	// log.Println("Response Body:", string(body))
 	return string(body)
 }
 
