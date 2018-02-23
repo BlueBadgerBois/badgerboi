@@ -4,3 +4,4 @@ server/key.pem
 quoteServer/tmp/*
 tags
 workloadGen/tmp/*
+workloadGen/1000User_testWorkLoad.txt

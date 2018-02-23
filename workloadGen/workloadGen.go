@@ -21,48 +21,21 @@ var wg sync.WaitGroup
 * inner array contains the username in index [0] and his commands 
 * in the remaining indexes.
 */
-func divideCommandsByUser (commands []string) [][]string {
-	commandsByUser := make([][]string, 0)
+func divideCommandsByUser (commands []string) map[string][]string {
+	commandsByUser := make(map[string][]string)
 	var command []string
-	foundDumplog := false
-	foundUsername := false
 
 	for i := 0; i < len(commands); i++ {
 		command = strings.Split(commands[i], ",")
-
+		log.Println(command)
+		user := command[1]
 		//For when the command is DUMPLOG and is independent of user
 		if strings.Contains(commands[i], "DUMPLOG") && len(command) == 2 {
-			for j := 0; j < len(commandsByUser); j++ {
-				if commandsByUser[j][0] == "adminDumplogs" {
-					commandsByUser[j] = append(commandsByUser[j], commands[i])
-					foundDumplog = true
-				}
-			}
-
-			if !foundDumplog {
-				commandsByUser = append(commandsByUser, make([]string, 0))
-				commandsByUser[len(commandsByUser) - 1] = append(commandsByUser[len(commandsByUser) - 1], "adminDumplogs")
-				commandsByUser[len(commandsByUser) - 1] = append(commandsByUser[len(commandsByUser) - 1], commands[i])
-			}
-			foundDumplog = false
+			commandsByUser["adminDumplogs"] = append(commandsByUser["adminDumplogs"], commands[i])
 			continue
 		}
-
-		//Rest of commands that depend on user
-		for j := 0; j < len(commandsByUser); j++ {
-			if commandsByUser[j][0] == command[1] {
-				commandsByUser[j] = append(commandsByUser[j], commands[i])
-				foundUsername = true
-			}
-		}
-		if !foundUsername {
-			commandsByUser = append(commandsByUser, make([]string, 0))
-			commandsByUser[len(commandsByUser) - 1] = append(commandsByUser[len(commandsByUser) - 1], command[1])
-			commandsByUser[len(commandsByUser) - 1] = append(commandsByUser[len(commandsByUser) - 1], commands[i])
-		}
-		foundUsername = false
+		commandsByUser[user] = append(commandsByUser[user], commands[i])
 	}
-
 	return commandsByUser
 }
 
@@ -347,14 +320,14 @@ func main (){
 
 	commandsByUser := divideCommandsByUser(commands)
 
-	for i := 0; i < len(commandsByUser); i++ {
-		if(commandsByUser[i][0] != "adminDumplogs"){
+	for user,commands := range commandsByUser {
+		if user == "adminDumplogs" {
 			wg.Add(1)
-			go sendCommands(commandsByUser[i])
+			go sendCommands(commands)
 		} else {
 			wg.Wait()
 			wg.Add(1)
-			sendCommands(commandsByUser[i])
+			sendCommands(commands)
 		}
 	}
 }
