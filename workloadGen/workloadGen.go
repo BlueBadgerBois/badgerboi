@@ -27,7 +27,9 @@ func divideCommandsByUser (commands []string) map[string][]string {
 
 	for i := 0; i < len(commands); i++ {
 		command = strings.Split(commands[i], ",")
-		log.Println(command)
+		if len(command) == 0 {
+			continue
+		}
 		user := command[1]
 		//For when the command is DUMPLOG and is independent of user
 		if strings.Contains(commands[i], "DUMPLOG") && len(command) == 2 {
@@ -321,7 +323,7 @@ func main (){
 	commandsByUser := divideCommandsByUser(commands)
 
 	for user,commands := range commandsByUser {
-		if user == "adminDumplogs" {
+		if user != "adminDumplogs" {
 			wg.Add(1)
 			go sendCommands(commands)
 		} else {
