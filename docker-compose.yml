@@ -6,7 +6,7 @@ services:
     ports:
       - "8082:8082" # port that is exposed for the web server
     depends_on:
-      - db
+      - db_proxy
     build: ./server
     volumes:
       - ./server:/go/src/app
@@ -20,7 +20,7 @@ services:
   job:
     container_name: job
     depends_on:
-      - db
+      - db_proxy
     build: ./server
     volumes:
       - ./server:/go/src/app
@@ -39,6 +39,19 @@ services:
       POSTGRES_PASSWORD: badgerboi
       POSTGRES_USER: badgerboi
       POSTGRES_DB: badgerboi
+    command: "-c max_connections=400"
+
+  db_proxy:
+    depends_on:
+      - db
+    container_name: db_proxy
+    image: brainsam/pgbouncer:latest
+    restart: always
+    environment:
+      DB_HOST: db
+      DB_USER: badgerboi
+      DB_PASSWORD: badgerboi
+
     command: "-c max_connections=400"
 
   quote:
