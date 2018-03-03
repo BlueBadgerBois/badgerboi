@@ -23,7 +23,7 @@ func (dbw *DBW) Init() {
 
 func (dbw *DBW) connectWithRetries() {
 	log.Println("Connecting to postgres.")
-	conn, err := gorm.Open("postgres", "host=db user=badgerboi dbname=badgerboi sslmode=disable password=badgerboi")
+	conn, err := gorm.Open("postgres", "host=db_proxy port=6432 user=badgerboi dbname=badgerboi sslmode=disable password=badgerboi")
 	dbw.Conn = conn
 	if err != nil {
 		log.Println(err)
