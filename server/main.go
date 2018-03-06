@@ -52,6 +52,8 @@ func runAsWebServer() {
 		fmt.Println("Connected to redis")
 	}
 
+	cacheClient.GetCurrUnixTimeInSecs()
+
 	// web server handlers
 	log.Println("Running web server.")
 	http.HandleFunc("/", handler.index)

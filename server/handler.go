@@ -2,18 +2,19 @@ package main
 
 import (
 	"app/db"
-	"bytes"
+
 	"bufio"
+	"bytes"
 	"errors"
-	"html/template"
 	"fmt"
+	"html/template"
+	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
 	"os"
-	"strings"
 	"strconv"
-	"io/ioutil"
+	"strings"
 )
 
 const MAX_TRANSACTION_VALIDITY_SECS = 60
@@ -199,6 +200,14 @@ func logSummaryCommand(txNum uint, user *db.User) {
 func getQuoteServerUrl() string {
 	url := os.Getenv("QUOTE_SERVER_URL")
 	return url
+}
+
+func cacheQuote(map[string]string) { // key is stock code. value is price
+	// currUnixTimeInSecs := cacheClient.GetCurrUnixTimeInSecs()
+	cacheClient.GetCurrUnixTimeInSecs()
+}
+
+func getQuote(txNum uint, username string, stockSymbol string) {
 }
 
 // Fetch a quote from the quote server and log it
