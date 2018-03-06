@@ -2,6 +2,8 @@ package main
 
 import (
 	"app/db"
+	"app/cache"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -9,6 +11,7 @@ import (
 )
 
 var dbw = &db.DBW{} // this is global so everything can see it
+var cacheClient = &cache.Cache{} // this is global so everything can see it
 var handler = Handler{}
 // var currentTxNum int
 type fn func(http.ResponseWriter, *http.Request)
@@ -19,6 +22,7 @@ const JOB_ROLE = "job"
 func main() {
 	//.Connect to db
 	dbw.Init()
+	cacheClient.Init()
 	defer dbw.CleanUp()
 
 	serverRole := getServerRole();
@@ -39,7 +43,14 @@ func runAsJobServer() {
 }
 
 func runAsWebServer() {
-	// generateCertsIfNotPresent()
+	_, err := cacheClient.Client.Ping().Result()
+	if err != nil {
+		fmt.Println("**************************************")
+		fmt.Println("!!!!! Failed connecting to redis !!!!!")
+		fmt.Println("**************************************")
+	} else {
+		fmt.Println("Connected to redis")
+	}
 
 	// web server handlers
 	log.Println("Running web server.")
