@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"github.com/kabukky/httpscerts"
+	_ "net/http/pprof"
 )
 
 var dbw = &db.DBW{} // this is global so everything can see it

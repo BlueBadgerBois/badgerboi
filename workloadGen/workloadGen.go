@@ -14,7 +14,7 @@ import (
 )
 
 const serverUrl = "http://web:8082"
-const defaultTestFile = "1000User_testWorkLoad.txt"
+const defaultTestFile = "100User_testWorkLoad.txt"
 var wg sync.WaitGroup
 
 /*
@@ -281,10 +281,11 @@ func sendRequest (req *http.Request) string {
 	// log.Println("Sending request...")
 	req.Close = true
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	client := &http.Client{Timeout: time.Second * 10}
+	client := &http.Client{Timeout: time.Second * time.Duration(20)}
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Println("Error sending http request:")
+		log.Println(req)
 		panic(err)
 	}
 	defer resp.Body.Close()
