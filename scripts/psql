@@ -1,2 +1,2 @@
 #!/bin/bash
-docker exec -it db_container psql -U badgerboi
+docker exec -it db psql -U badgerboi
