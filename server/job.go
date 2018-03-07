@@ -28,7 +28,7 @@ func checkTriggers() {
 			fmt.Println("Error: ", err.Error())
 			return
 		}
-		responseMap := getQuoteFromServer(txNum, user.Username, trig.StockSym)
+		responseMap := getQuote(txNum, user.Username, trig.StockSym)
 
 		quotePrice := stringMoneyToCents(responseMap["price"])
 		if trig.Type == "buy" && quotePrice < trig.PriceThreshold {

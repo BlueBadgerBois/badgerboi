@@ -18,36 +18,29 @@ func (cache *Cache) Init() {
 		DB:       0,  // use default DB
 	})
 	cache.Client = client	
-}
 
-func (cache *Cache) GetCurrUnixTimeInSecs() (time.Time, error) {
-	val, err :=	cache.Client.Time().Result()
-	return val, err
-}
-
-func (cache *Cache) ExpireKeyAtUnixSeconds(key string, tm time.Time) error {
-	_, err :=	cache.Client.ExpireAt(key, tm).Result()
+	_, err := cache.Client.Ping().Result()
 	if err != nil {
-		return errors.New("Could not expire key " + key)
+		fmt.Println("**************************************")
+		fmt.Println("!!!!! Failed connecting to redis !!!!!")
+		fmt.Println("**************************************")
+	} else {
+		fmt.Println("Connected to redis")
 	}
-	
+}
+
+func (cache *Cache) SetKeyWithExpirationInSecs(key string, val string, expSecs uint) error {
+	secondsDelta := time.Duration(expSecs) * time.Second
+	err := cache.Client.Set(key, val, secondsDelta).Err()
+
+	if err != nil {
+		return errors.New("Could not set key " + key + "with expiration")
+	}
+
 	return nil
 }
 
-func (cache *Cache) ExpireKeyInFuture(key string, numSeconds uint) error {
-	currTimeInUnixSecs, err := cache.GetCurrUnixTimeInSecs()
-	if err != nil {
-		return err
-	}
-
-	fmt.Println("current time: ", currTimeInUnixSecs.String())
-	secondsDelta := time.Duration(numSeconds) * time.Second
-	expireTimeInUnixSecs := currTimeInUnixSecs.Add(secondsDelta)
-	fmt.Println("expire time: ", expireTimeInUnixSecs.String())
-
-
-	err = cache.ExpireKeyAtUnixSeconds(key, expireTimeInUnixSecs)
-
-	return err
+func (cache *Cache) GetKeyWithStringVal(key string) (string, error) {
+	val, err := cache.Client.Get(key).Result()
+	return val, err
 }
-

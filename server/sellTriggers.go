@@ -49,7 +49,7 @@ func (handler *Handler) setSellAmount(w http.ResponseWriter, r *http.Request) {
 		amountToSell := stringMoneyToCents(sellAmount)
 
 		// get the current quoted price
-		quoteResponse := getQuoteFromServer(txNum, username, stockSymbol)
+		quoteResponse := getQuote(txNum, username, stockSymbol)
 		quotePrice := stringMoneyToCents(quoteResponse["price"])
 
 		numStocks, _ := convertMoneyToStock(amountToSell, quotePrice)

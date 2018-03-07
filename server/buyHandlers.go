@@ -23,7 +23,7 @@ func (handler *Handler) buy(w http.ResponseWriter, r *http.Request) {
 
 		logBuyCommand(txNum, stockSymbol, user)
 
-		quoteResponseMap := getQuoteFromServer(txNum, username, stockSymbol)
+		quoteResponseMap := getQuote(txNum, username, stockSymbol)
 
 		quotedPriceInCents := stringMoneyToCents(quoteResponseMap["price"])
 

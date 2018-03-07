@@ -24,7 +24,7 @@ func (handler *Handler) sell(w http.ResponseWriter, r *http.Request) {
 
 		logSellCommand(txNum, stockSymbol, user)
 
-		quoteResponseMap := getQuoteFromServer(txNum, username, stockSymbol)
+		quoteResponseMap := getQuote(txNum, username, stockSymbol)
 
 		err, _ := createSellTransaction(txNum, user, stockSymbol, amountToSellInCents,
 		stringMoneyToCents(quoteResponseMap["price"]))

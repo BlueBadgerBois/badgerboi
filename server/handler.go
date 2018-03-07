@@ -18,6 +18,7 @@ import (
 )
 
 const MAX_TRANSACTION_VALIDITY_SECS = 60
+const MAX_QUOTE_VALIDITY_SECS = 60
 
 type Handler struct {}
 
@@ -93,7 +94,7 @@ func (handler *Handler) quote(w http.ResponseWriter, r *http.Request) {
 		username := r.Form.Get("username")
 		stockSymbol := r.Form.Get("stocksym")
 
-		responseMap := getQuoteFromServer(txNum, username, stockSymbol)
+		responseMap := getQuote(txNum, username, stockSymbol)
 
 		user := db.UserFromUsernameOrCreate(dbw, responseMap["username"])
 
@@ -197,34 +198,47 @@ func logSummaryCommand(txNum uint, user *db.User) {
 	commandLogItem.SaveRecord(dbw, username)
 }
 
+func writeQuoteToCache(symbol string, quote string) {
+	err := cacheClient.SetKeyWithExpirationInSecs(symbol, quote, MAX_QUOTE_VALIDITY_SECS)
+	if err != nil {
+		fmt.Println("Error caching quote. Symbol: ", symbol, " Quote: ", quote, "error: ", err)
+	}
+}
+
 func getQuoteServerUrl() string {
 	url := os.Getenv("QUOTE_SERVER_URL")
 	return url
 }
 
-func cacheQuote(map[string]string) { // key is stock code. value is price
-	// currUnixTimeInSecs := cacheClient.GetCurrUnixTimeInSecs()
-	cacheClient.GetCurrUnixTimeInSecs()
-}
-
-func getQuote(txNum uint, username string, stockSymbol string) {
-}
-
 // Fetch a quote from the quote server and log it
-func getQuoteFromServer(txNum uint, username string, stockSymbol string) map[string]string {
-	quoteServerUrl := getQuoteServerUrl()
-	conn, err := net.Dial("tcp", quoteServerUrl)
+func getQuote(txNum uint, username string, stockSymbol string) map[string]string {
+	responseMap := map[string]string {}
 
-	if err != nil{
-		log.Println("error hitting quote server: ", err)
+	quoteFromCache, err := cacheClient.GetKeyWithStringVal(stockSymbol)
+
+	if err == nil { // Quote was found in the cached
+		fmt.Println("Key ", stockSymbol, "found in cache")
+		responseMap["price"] = quoteFromCache
+		responseMap["stockSymbol"] = stockSymbol
+		responseMap["username"] = username
+	} else {
+		fmt.Println("No key ", stockSymbol, "found in cache")
+
+		quoteServerUrl := getQuoteServerUrl()
+		conn, err := net.Dial("tcp", quoteServerUrl)
+
+		if err != nil{
+			log.Println("error hitting quote server: ", err)
+		}
+
+		fmt.Fprintf(conn, stockSymbol + "," + username + "\n")
+		message, _ := bufio.NewReader(conn).ReadString('\n')
+		responseMap = quoteServerResponseToMap(message)
+		fmt.Println("Writing ", stockSymbol, ": ", responseMap["price"])
+		writeQuoteToCache(stockSymbol, responseMap["price"])
+
+		logQuoteServer(txNum, responseMap)
 	}
-
-	fmt.Fprintf(conn, stockSymbol + "," + username + "\n")
-	message, _ := bufio.NewReader(conn).ReadString('\n')
-
-	responseMap := quoteResponseToMap(message)
-
-	logQuoteServer(txNum, responseMap)
 
 	return responseMap
 }
@@ -256,7 +270,7 @@ func logQuoteCommand(txNum uint, params map[string]string, user *db.User) {
 	commandLogItem.SaveRecord(dbw, username)
 }
 
-func quoteResponseToMap(message string) map[string]string {
+func quoteServerResponseToMap(message string) map[string]string {
 	splitMessage := strings.Split(message, ",")
 
 	outputMap := map[string]string {
