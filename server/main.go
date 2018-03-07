@@ -3,7 +3,6 @@ package main
 import (
 	"app/db"
 	"app/cache"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -20,8 +19,7 @@ const WEB_ROLE = "web"
 const JOB_ROLE = "job"
 
 func main() {
-	//.Connect to db
-	dbw.Init()
+	dbw.Init() // Connect to db
 	cacheClient.Init()
 	defer dbw.CleanUp()
 
@@ -43,15 +41,6 @@ func runAsJobServer() {
 }
 
 func runAsWebServer() {
-	_, err := cacheClient.Client.Ping().Result()
-	if err != nil {
-		fmt.Println("**************************************")
-		fmt.Println("!!!!! Failed connecting to redis !!!!!")
-		fmt.Println("**************************************")
-	} else {
-		fmt.Println("Connected to redis")
-	}
-
 	// web server handlers
 	log.Println("Running web server.")
 	http.HandleFunc("/", handler.index)
