@@ -2,7 +2,7 @@ version: '3'
 services:
   web:
     # need to start using healthcheck to ensure cassandra is up. sleep could be adequate for now tho
-    container_name: web_container
+    container_name: web
     ports:
       - "8082:8082" # port that is exposed for the web server
     depends_on:
@@ -18,7 +18,7 @@ services:
         aliases:
           - web
   job:
-    container_name: job_container
+    container_name: job
     depends_on:
       - db
     build: ./server
@@ -32,7 +32,7 @@ services:
       ROLE: job
       QUOTE_SERVER_URL: "quoteserve:4448"
   db:
-    container_name: db_container
+    container_name: db
     image: postgres
     restart: always
     environment:
@@ -42,7 +42,7 @@ services:
     command: "-c max_connections=400"
 
   quote:
-    container_name: quote_container
+    container_name: quote
     ports:
       - "4448:4448"
     build: ./quoteServer
