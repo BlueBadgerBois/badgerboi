@@ -217,14 +217,12 @@ func getQuoteWithCaching(txNum uint, username string, stockSymbol string) map[st
 	quoteFromCache, err := cacheClient.GetKeyWithStringVal(stockSymbol)
 
 	if err == nil { // Quote was found in the cache
-		fmt.Println("Key ", stockSymbol, " found in cache")
 		responseMap["price"] = quoteFromCache
 		responseMap["stockSymbol"] = stockSymbol
 		responseMap["username"] = username
 	} else {
 		responseMap = getQuoteFromServer(txNum, username, stockSymbol)
 
-		fmt.Println("Writing ", stockSymbol, "to cache")
 		writeQuoteToCache(stockSymbol, responseMap["price"])
 	}
 
