@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"sync"
+	"time"
 )
 
 const serverUrl = "http://web:8082"
@@ -278,8 +279,9 @@ func sendCommand (command []string) {
 */
 func sendRequest (req *http.Request) string {
 	// log.Println("Sending request...")
+	req.Close = true
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	client := &http.Client{}
+	client := &http.Client{Timeout: time.Second * 10}
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Println("Error sending http request:")
