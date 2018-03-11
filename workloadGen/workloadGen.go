@@ -11,10 +11,11 @@ import (
 	"net/url"
 	"sync"
 	"time"
+	"fmt"
 )
 
 const serverUrl = "http://web:8082"
-const defaultTestFile = "100User_testWorkLoad.txt"
+const defaultTestFile = "1000User_testWorkLoad.txt"
 var wg sync.WaitGroup
 
 /*
@@ -45,13 +46,11 @@ func divideCommandsByUser (commands []string) map[string][]string {
 /*
 *	Sends the commands in order to the server
 */
-func sendCommands (commands []string) {
+func sendUserCommands (commands []string) {
 	var command []string
 
 	for i := 1; i < len(commands); i++ {
-		command = strings.Split(commands[i], ",")
-		// log.Println("----------------------------------------------")
-		// log.Println(command)		
+		command = strings.Split(commands[i], ",")	
 		sendCommand(command)
 	}
 	defer wg.Done()
@@ -61,190 +60,102 @@ func sendCommands (commands []string) {
 *	Sends a single command
 */
 func sendCommand (command []string) {
+	data := url.Values{}
+	var commandType string
+
 	if command[0] == "ADD" {
-		data := url.Values{}
 		data.Set("username", command[1])
 		data.Add("amount", command[2])
-		req, err := http.NewRequest("POST", serverUrl + "/add", strings.NewReader(data.Encode()))
-		if err != nil {
-			log.Println("Error making a new request:")
-			log.Println(err)
-		}
-		sendRequest(req)
+		commandType = "add"
+		sendRequest(data, commandType)
 	}
 
 	if command[0] == "QUOTE" {
-		data := url.Values{}
 		data.Set("username", command[1])
 		data.Add("stocksym", command[2])
-		req, err := http.NewRequest("POST", serverUrl + "/quote", strings.NewReader(data.Encode()))
-		if err != nil {
-			log.Println("Error making a new request:")
-			log.Println(err)
-		}
-		sendRequest(req)
+		commandType = "quote"
 	}
 
 	if command[0] == "DISPLAY_SUMMARY" {
-		data := url.Values{}
 		data.Set("username", command[1])
-		req, err := http.NewRequest("POST", serverUrl + "/summary", strings.NewReader(data.Encode()))
-		if err != nil {
-			log.Println("Error making a new request:")
-			log.Println(err)
-		}
-		sendRequest(req)
+		commandType = "summary"	
 	}
 
 	if command[0] == "BUY" {
-		data := url.Values{}
 		data.Set("username", command[1])
 		data.Add("stockSymbol", command[2])
 		data.Add("buyAmount", command[3])
-		req, err := http.NewRequest("POST", serverUrl + "/buy", strings.NewReader(data.Encode()))
-		if err != nil {
-			log.Println("Error making a new request:")
-			log.Println(err)
-		}
-		sendRequest(req)
+		commandType = "buy"
 	}
 
 	if command[0] == "COMMIT_BUY" {
-		data := url.Values{}
 		data.Set("username", command[1])
-		req, err := http.NewRequest("POST", serverUrl + "/commitBuy", strings.NewReader(data.Encode()))
-		if err != nil {
-			log.Println("Error making a new request:")
-			log.Println(err)
-		}
-		sendRequest(req)
+		commandType = "commitBuy"
 	}
 
 	if command[0] == "CANCEL_BUY" {
-		data := url.Values{}
 		data.Set("username", command[1])
-		req, err := http.NewRequest("POST", serverUrl + "/cancelBuy", strings.NewReader(data.Encode()))
-		if err != nil {
-			log.Println("Error making a new request:")
-			log.Println(err)
-		}
-		sendRequest(req)
+		commandType = "cancelBuy"
 	}
 
 	if command[0] == "SELL" {
-		data := url.Values{}
 		data.Set("username", command[1])
 		data.Add("stockSymbol", command[2])
 		data.Add("sellAmount", command[3])
-		req, err := http.NewRequest("POST", serverUrl + "/sell", strings.NewReader(data.Encode()))
-		if err != nil {
-			log.Println("Error making a new request:")
-			log.Println(err)
-		}
-		sendRequest(req)
+		commandType = "sell"
 	}
 
 	if command[0] == "COMMIT_SELL" {
-		data := url.Values{}
 		data.Set("username", command[1])
-		req, err := http.NewRequest("POST", serverUrl + "/commitSell", strings.NewReader(data.Encode()))
-		if err != nil {
-			log.Println("Error making a new request:")
-			log.Println(err)
-		}
-		sendRequest(req)
+		commandType = "commitSell"
 	}
 
 	if command[0] == "CANCEL_SELL" {
-		data := url.Values{}
 		data.Set("username", command[1])
-		req, err := http.NewRequest("POST", serverUrl + "/cancelSell", strings.NewReader(data.Encode()))
-		if err != nil {
-			log.Println("Error making a new request:")
-			log.Println(err)
-		}
-		sendRequest(req)
+		commandType = "cancelSell"
 	}
 
 	if command[0] == "SET_BUY_AMOUNT" {
-		data := url.Values{}
 		data.Set("username", command[1])
 		data.Add("stockSymbol", command[2])
 		data.Add("buyAmount", command[3])
-		req, err := http.NewRequest("POST", serverUrl + "/setBuyAmount", strings.NewReader(data.Encode()))
-		if err != nil {
-			log.Println("Error making a new request:")
-			log.Println(err)
-		}
-		sendRequest(req)
+		commandType = "setBuyAmount"
 	}
 
 	if command[0] == "CANCEL_SET_BUY" {
-		data := url.Values{}
 		data.Set("username", command[1])
 		data.Add("stockSymbol", command[2])
-		req, err := http.NewRequest("POST", serverUrl + "/cancelSetBuy", strings.NewReader(data.Encode()))
-		if err != nil {
-			log.Println("Error making a new request:")
-			log.Println(err)
-		}
-		sendRequest(req)
+		commandType = "cancelSetBuy"
 	}
 
 	if command[0] == "SET_BUY_TRIGGER" {
-		data := url.Values{}
 		data.Set("username", command[1])
 		data.Add("stockSymbol", command[2])
 		data.Add("threshold", command[3])
-		req, err := http.NewRequest("POST", serverUrl + "/setBuyTrigger", strings.NewReader(data.Encode()))
-		if err != nil {
-			log.Println("Error making a new request:")
-			log.Println(err)
-		}
-		sendRequest(req)
+		commandType = "setBuyTrigger"
 	}
 
 	if command[0] == "SET_SELL_AMOUNT" {
-		data := url.Values{}
 		data.Set("username", command[1])
 		data.Add("stockSymbol", command[2])
 		data.Add("sellAmount", command[3])
-		req, err := http.NewRequest("POST", serverUrl + "/setSellAmount", strings.NewReader(data.Encode()))
-		if err != nil {
-			log.Println("Error making a new request:")
-			log.Println(err)
-		}
-		sendRequest(req)
+		commandType = "setSellAmount"
 	}
 
 	if command[0] == "CANCEL_SET_SELL" {
-		data := url.Values{}
 		data.Set("username", command[1])
 		data.Add("stockSymbol", command[2])
-		req, err := http.NewRequest("POST", serverUrl + "/cancelSetSell", strings.NewReader(data.Encode()))
-		if err != nil {
-			log.Println("Error making a new request:")
-			log.Println(err)
-		}
-		sendRequest(req)
+		commandType = "cancelSetSell"
 	}
 
 	if command[0] == "SET_SELL_TRIGGER" {
-		data := url.Values{}
 		data.Set("username", command[1])
 		data.Add("stockSymbol", command[2])
 		data.Add("threshold", command[3])
-		req, err := http.NewRequest("POST", serverUrl + "/setSellTrigger", strings.NewReader(data.Encode()))
-		if err != nil {
-			log.Println("Error making a new request:")
-			log.Println(err)
-		}
-		sendRequest(req)
+		commandType = "setSellTrigger"
 	}
 
 	if command[0] == "DUMPLOG" {
-		// log.Println("In dumplog")
-		data := url.Values{}
 		var outfile string
 
 		if(len(command) <= 2){
@@ -256,48 +167,63 @@ func sendCommand (command []string) {
 		}
 		data.Add("outfile", outfile)
 
-		req, err := http.NewRequest("POST", serverUrl + "/dumplog", strings.NewReader(data.Encode()))
-		if err != nil {
-			log.Println("Error making a new request:")
-			log.Println(err)
-		}
-
-		body := sendRequest(req)
+		body := sendRequest(data, "dumplog")
 		trimIndex := strings.Index(body, "<")
 		body = body[trimIndex:]
 		bodyInBytes := []byte(body)
-		err = ioutil.WriteFile(outfile, bodyInBytes, 0644)
+		err := ioutil.WriteFile(outfile, bodyInBytes, 0644)
 		if err != nil {
 			log.Println("Error writing to file " + outfile)
 			panic(err)
 		}
+		return
 	}
+
+	sendRequest(data, commandType)
 }
 
 /*
 * Handles sending a request and printing the response
 */
-func sendRequest (req *http.Request) string {
-	// log.Println("Sending request...")
-	req.Close = true
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	client := &http.Client{Timeout: time.Second * time.Duration(20)}
-	resp, err := client.Do(req)
-	if err != nil {
-		log.Println("Error sending http request:")
-		log.Println(req)
-		panic(err)
+func sendRequest (data url.Values, commandType string) string {
+	var resp *http.Response
+	tr := &http.Transport{
+		MaxIdleConnsPerHost: 100,
+		DisableKeepAlives: false,
 	}
-	defer resp.Body.Close()
-	log.Println("Response Status:", resp.Status)
-	body, _ := ioutil.ReadAll(resp.Body)
-	// log.Println("Response Body:", string(body))
-	return string(body)
+
+	for {
+		//Set the request and reader
+		req, err := http.NewRequest("POST", serverUrl + "/" + commandType, strings.NewReader(data.Encode()))
+		if err != nil {
+			log.Println("Error making a new request:")
+			log.Println(err)
+		}
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		req.Close = true
+
+		//Set the client
+		client := &http.Client{Transport: tr, Timeout: time.Duration(200 * time.Second)}
+		resp, err = client.Do(req)
+		if err != nil {
+			log.Println("Error sending http request:")
+			fmt.Println(err)
+			continue
+			//panic(err)
+		}
+
+		defer resp.Body.Close()
+		log.Println("Response Status:", resp.Status)
+		body, _ := ioutil.ReadAll(resp.Body)
+		return string(body)
+	}
+	
+	return "blah"
 }
 
 func main (){
-	
 	var testFile string
+
 	if len(os.Args) < 2 {
 		log.Println("Default file used: " + defaultTestFile)
 		testFile = defaultTestFile
@@ -315,7 +241,6 @@ func main (){
 	commands := strings.Split(fileDataString, "\n")
 
 	var commandWithNum []string
-
 	for i := 0; i < len(commands); i++ {
 		if commands[i] != "" {
 			commandWithNum = strings.Split(commands[i], " ")
@@ -324,15 +249,25 @@ func main (){
 	}
 
 	commandsByUser := divideCommandsByUser(commands)
+	for user,_ := range commandsByUser {
+		log.Println(user)
+	}
 
 	for user,commands := range commandsByUser {
 		if user != "adminDumplogs" {
 			wg.Add(1)
-			go sendCommands(commands)
-		} else {
-			wg.Wait()
-			wg.Add(1)
-			sendCommands(commands)
+			go sendUserCommands(commands)
 		}
+		// else {
+			/*wg.Wait()
+			wg.Add(1)
+			log.Println("Admin commands")
+			sendCommands(commands)
+			log.Println("Almost done")*/
+		//}
 	}
+	wg.Wait()
+	wg.Add(1)
+	sendUserCommands(commandsByUser["adminDumplogs"])
+	log.Println("FINISHED")
 }
