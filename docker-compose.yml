@@ -57,8 +57,7 @@ services:
       DB_HOST: db
       DB_USER: badgerboi
       DB_PASSWORD: badgerboi
-
-    command: "-c max_connections=400"
+      MAX_DB_CONNECTIONS: 1000
 
   quote:
     container_name: quote
