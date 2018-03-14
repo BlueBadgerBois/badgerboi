@@ -23,6 +23,9 @@ reloadjob:
 updb:
 	docker-compose up db
 
+upproxy:
+	docker-compose up db_proxy
+
 upquote:
 	docker-compose up --no-deps quote
 

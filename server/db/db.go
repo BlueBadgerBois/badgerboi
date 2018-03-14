@@ -17,13 +17,18 @@ type DBTime struct {
 
 func (dbw *DBW) Init() {
 	dbw.connectWithRetries()
+
+	dbw.Conn.DB().SetMaxOpenConns(400)
+	dbw.Conn.DB().SetMaxIdleConns(400)
+
 	dbw.autoMigrate()
 	dbw.migrate()
 }
 
 func (dbw *DBW) connectWithRetries() {
 	log.Println("Connecting to postgres.")
-	conn, err := gorm.Open("postgres", "host=db_proxy port=6432 user=badgerboi dbname=badgerboi sslmode=disable password=badgerboi")
+	// conn, err := gorm.Open("postgres", "host=db_proxy port=6432 user=badgerboi dbname=badgerboi sslmode=disable password=badgerboi")
+	conn, err := gorm.Open("postgres", "host=db port=5432 user=badgerboi dbname=badgerboi sslmode=disable password=badgerboi")
 	dbw.Conn = conn
 	if err != nil {
 		log.Println(err)
