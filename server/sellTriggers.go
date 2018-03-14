@@ -155,6 +155,20 @@ func (handler *Handler) setSellTrigger(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		if (threshold == "") { // empty threshold. GTFO!
+			fmt.Println("empty sell trigger threshold received")
+
+			fmt.Fprintf(w, "Error: ",  "Empty amount for SET_SELL_TRIGGER")
+
+			errorEventParams := map[string]string {
+				"command": "SET_SELL_TRIGGER",
+				"stockSymbol": stockSymbol,
+				"errorMessage": "Empty amount for SET_SELL_TRIGGER",
+			}
+			logErrorEvent(txNum, errorEventParams, &user)
+			return;
+		}
+
 		thresholdInCents := stringMoneyToCents(threshold);
 
 		trig, err := db.TriggerFromUserAndStockSym(dbw, user.ID, stockSymbol, "sell")
