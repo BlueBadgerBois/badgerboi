@@ -67,7 +67,6 @@ func sendCommand (command []string) {
 		data.Set("username", command[1])
 		data.Add("amount", command[2])
 		commandType = "add"
-		sendRequest(data, commandType)
 	}
 
 	if command[0] == "QUOTE" {
@@ -156,6 +155,7 @@ func sendCommand (command []string) {
 	}
 
 	if command[0] == "DUMPLOG" {
+		log.Println("IN DUMPLOG")
 		var outfile string
 
 		if(len(command) <= 2){
