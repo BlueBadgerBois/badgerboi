@@ -23,6 +23,20 @@ func (handler *Handler) buy(w http.ResponseWriter, r *http.Request) {
 
 		logBuyCommand(txNum, stockSymbol, user)
 
+		// Return early if the user has insufficient funds
+		if !user.HasEnoughMoney(amountToBuyInCents) {
+			errMsg := "Error! user does not have enough money to buy stocks"
+			fmt.Fprintf(w, errMsg)
+			errorEventParams := map[string]string {
+				"command": "BUY",
+				"stockSymbol": stockSymbol,
+				"errorMessage": errMsg,
+			}
+			logErrorEvent(txNum, errorEventParams, user)
+			return
+		}
+
+
 		quoteResponseMap := getQuoteFromServer(txNum, username, stockSymbol)
 
 		quotedPriceInCents := stringMoneyToCents(quoteResponseMap["price"])
@@ -170,7 +184,6 @@ func (handler *Handler) cancelBuy(w http.ResponseWriter, r *http.Request) {
 		r.ParseForm()
 		username := r.Form.Get("username")
 
-
 		user, err := db.UserFromUsername(dbw, username)
 		if err != nil {
 			fmt.Fprintf(w, "Failure! user does not exist!\n\n")
@@ -287,7 +300,6 @@ func logCancelBuyCommand(txNum uint, stockSymbol string, user *db.User) {
 	commandLogItem.Funds = centsToDollarsString(user.CurrentMoney)
 	commandLogItem.TransactionNum = strconv.FormatUint(uint64(txNum), 10)
 	username := user.Username
-
 
 	commandLogItem.SaveRecord(dbw, username)
 }
