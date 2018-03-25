@@ -49,7 +49,7 @@ func divideCommandsByUser (commands []string) map[string][]string {
 func sendUserCommands (commands []string) {
 	var command []string
 
-	for i := 1; i < len(commands); i++ {
+	for i := 0; i < len(commands); i++ {
 		command = strings.Split(commands[i], ",")	
 		sendCommand(command)
 	}
@@ -171,6 +171,7 @@ func sendCommand (command []string) {
 		trimIndex := strings.Index(body, "<")
 		body = body[trimIndex:]
 		bodyInBytes := []byte(body)
+		log.Println("writing to file now...")
 		err := ioutil.WriteFile(outfile, bodyInBytes, 0644)
 		if err != nil {
 			log.Println("Error writing to file " + outfile)
@@ -249,10 +250,8 @@ func main (){
 	}
 
 	commandsByUser := divideCommandsByUser(commands)
-	for user,_ := range commandsByUser {
-		log.Println(user)
-	}
 
+	
 	for user,commands := range commandsByUser {
 		if user != "adminDumplogs" {
 			wg.Add(1)
@@ -263,8 +262,8 @@ func main (){
 			wg.Add(1)
 			log.Println("Admin commands")
 			sendCommands(commands)
-			log.Println("Almost done")*/
-		//}
+			log.Println("Almost done")
+		//}*/
 	}
 	wg.Wait()
 	wg.Add(1)
