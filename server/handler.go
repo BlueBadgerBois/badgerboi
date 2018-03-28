@@ -65,7 +65,6 @@ func (handler *Handler) add(w http.ResponseWriter, r *http.Request) {
 		dbw.Conn.Save(&user)
 
 		logAddCommand(txNum, user)
-		logAccountTransaction(txNum, user, "add")
 
 		fmt.Fprintf(w,
 		"Success!\n\n" +

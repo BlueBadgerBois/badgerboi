@@ -101,7 +101,6 @@ func (logItem *QuoteServerLogItem) SaveRecord(dbw *DBW, username string) {
 	saveLogItem(dbw, username, jsonString)
 }
 
-
 type AccountTransactionLogItem struct {
 	// Any time a user's account is touched, an account message is printed.
 	// Appropriate actions are "add" or "remove".
