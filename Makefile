@@ -37,3 +37,6 @@ upworkload:
 
 cptestLog:
 	docker cp workload:/go/src/app/testLOG .
+
+upredis:
+	docker-compose up --no-deps redis

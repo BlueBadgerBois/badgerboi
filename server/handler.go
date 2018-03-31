@@ -342,8 +342,22 @@ func writeLogsToFile(outfile string, log_items []db.LogItem) string{
 	logFileXML.WriteString("<?xml version=\"1.0\"?>\n")
 	logFileXML.WriteString("<log>\n")
 
-	for i := 0; i < len(log_items); i++ {
-		//fmt.Println(log_items[i].Data)
+	//Makes a new file to replace posibly existing one
+	err := ioutil.WriteFile(outfile, []byte(logFileXML.String()), 0644)
+	if err != nil {
+		log.Println("Error writing to file " + outfile)
+		panic(err)
+	}
+	logFileXML.Reset()
+
+	count := 0
+	for i := 0; i < len(log_items); i++{
+		count++
+		if count > 100000 {
+			appendToFile(outfile, logFileXML.String())
+			logFileXML.Reset()
+			count = 0
+		}
 
 		logItem := strings.Replace(log_items[i].Data, "\"", "", -1)
 		logItem = strings.Replace(logItem, "}", "", -1)
@@ -369,12 +383,25 @@ func writeLogsToFile(outfile string, log_items []db.LogItem) string{
 	}
 	logFileXML.WriteString("</log>\n")
 
-	//fmt.Println(logFileXML.String())
-	err := ioutil.WriteFile(outfile, []byte(logFileXML.String()), 0644)
+	/*err := ioutil.WriteFile(outfile, []byte(logFileXML.String()), 0644)
 	if err != nil {
 		log.Println("Error writing to file " + outfile)
 		panic(err)
-	}
+	}*/
+	appendToFile(outfile, logFileXML.String())
 
 	return logFileXML.String()
+}
+
+func appendToFile(filename string, text string) {
+	f, err := os.OpenFile(filename, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
+	if err != nil {
+	    panic(err)
+	}
+
+	defer f.Close()
+
+	if _, err = f.WriteString(text); err != nil {
+	    panic(err)
+	}
 }
