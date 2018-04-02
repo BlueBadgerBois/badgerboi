@@ -52,24 +52,12 @@ func (handler *Handler) commitSell(w http.ResponseWriter, r *http.Request) {
 		user, err := db.UserFromUsername(dbw, username)
 		if err != nil {
 			fmt.Fprintf(w, "Failure! user does not exist!\n\n")
-			errorEventParams := map[string]string {
-				"command": "COMMIT_SELL",
-				"stockSymbol": "",
-				"errorMessage": err.Error(),
-			}
-			logErrorEvent(txNum, errorEventParams, user)
 			return
 		}
 
 		transactionToCommit, err := db.NewestPendingTransactionForUser(dbw, user, "sell")
 		if err != nil { // If no transaction can be found
 			fmt.Fprintf(w, "Failure! " + err.Error())
-			errorEventParams := map[string]string {
-				"command": "COMMIT_SELL",
-				"stockSymbol": "",
-				"errorMessage": err.Error(),
-			}
-			logErrorEvent(txNum, errorEventParams, user)
 			return
 		}
 
@@ -82,12 +70,6 @@ func (handler *Handler) commitSell(w http.ResponseWriter, r *http.Request) {
 		if timeDifference.Seconds() > MAX_TRANSACTION_VALIDITY_SECS {
 			errMsg :=  "Failure! Most recent sell transaction is more than 60 seconds old."
 			fmt.Fprintf(w, errMsg)
-			errorEventParams := map[string]string {
-				"command": "COMMIT_SELL",
-				"stockSymbol": transactionToCommit.StockSymbol,
-				"errorMessage": errMsg,
-			}
-			logErrorEvent(txNum, errorEventParams, user)
 			return
 		}
 
@@ -108,12 +90,6 @@ func (handler *Handler) commitSell(w http.ResponseWriter, r *http.Request) {
 			"Stock Symbol: " + transactionToCommit.StockSymbol + "\n" +
 			"Number to sell: " + fmt.Sprint(numStocksNeeded) +
 			"\nCurrent holdings: " + fmt.Sprint(userHolding.Number)
-			errorEventParams := map[string]string {
-				"command": "COMMIT_SELL",
-				"stockSymbol": transactionToCommit.StockSymbol,
-				"errorMessage": errMsg,
-			}
-			logErrorEvent(txNum, errorEventParams, user)
 			fmt.Fprintf(w, errMsg)
 			return
 		}
@@ -145,24 +121,12 @@ func (handler *Handler) cancelSell(w http.ResponseWriter, r *http.Request) {
 		user, err := db.UserFromUsername(dbw, username)
 		if err != nil {
 			fmt.Fprintf(w, "Failure! user does not exist!\n\n")
-			errorEventParams := map[string]string {
-				"command": "COMMIT_SELL",
-				"stockSymbol": "",
-				"errorMessage": err.Error(),
-			}
-			logErrorEvent(txNum, errorEventParams, user)
 			return
 		}
 
 		transactionToCancel, err := db.NewestPendingTransactionForUser(dbw, user, "sell")
 		if err != nil {
 			fmt.Fprintf(w, "Failure! " + err.Error())
-			errorEventParams := map[string]string {
-				"command": "CANCEL_SELL",
-				"stockSymbol": "",
-				"errorMessage": err.Error(),
-			}
-			logErrorEvent(txNum, errorEventParams, user)
 
 			return
 		}
@@ -175,12 +139,6 @@ func (handler *Handler) cancelSell(w http.ResponseWriter, r *http.Request) {
 		if timeDifference.Seconds() > MAX_TRANSACTION_VALIDITY_SECS {
 			errMsg := "Failure! Most recent SELL transaction is more than 60 seconds old."
 			fmt.Fprintf(w, errMsg)
-			errorEventParams := map[string]string {
-				"command": "CANCEL_SELL",
-				"stockSymbol": transactionToCancel.StockSymbol,
-				"errorMessage": errMsg,
-			}
-			logErrorEvent(txNum, errorEventParams, user)
 
 			return
 		}
@@ -213,12 +171,6 @@ func createSellTransaction(txNum uint, user *db.User, stockSymbol string, amount
 		"Stock Symbol: " + stockSymbol + "\n" +
 		"Number to sell: " + fmt.Sprint(numStocksNeeded) +
 		"\nCurrent holdings: " + fmt.Sprint(userHolding.Number)
-		errorEventParams := map[string]string {
-			"command": "SELL",
-			"stockSymbol": stockSymbol,
-			"errorMessage": errMsg,
-		}
-		logErrorEvent(txNum, errorEventParams, user)
 
 		return errors.New(errMsg), sellTransaction
 	}

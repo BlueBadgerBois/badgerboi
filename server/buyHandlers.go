@@ -27,12 +27,6 @@ func (handler *Handler) buy(w http.ResponseWriter, r *http.Request) {
 		if !user.HasEnoughMoney(amountToBuyInCents) {
 			errMsg := "Error! user does not have enough money to buy stocks"
 			fmt.Fprintf(w, errMsg)
-			errorEventParams := map[string]string {
-				"command": "BUY",
-				"stockSymbol": stockSymbol,
-				"errorMessage": errMsg,
-			}
-			logErrorEvent(txNum, errorEventParams, user)
 			return
 		}
 
@@ -45,12 +39,6 @@ func (handler *Handler) buy(w http.ResponseWriter, r *http.Request) {
 			errMsg := "Error! The buy amount " + centsToDollarsString(amountToBuyInCents) +
 			" is not enough to buy even one stock at price " + centsToDollarsString(quotedPriceInCents)
 			fmt.Fprintf(w, errMsg)
-			errorEventParams := map[string]string {
-				"command": "BUY",
-				"stockSymbol": stockSymbol,
-				"errorMessage": errMsg,
-			}
-			logErrorEvent(txNum, errorEventParams, user)
 			return
 		}
 
@@ -80,12 +68,6 @@ func (handler *Handler) commitBuy(w http.ResponseWriter, r *http.Request) {
 		user, err := db.UserFromUsername(dbw, username)
 		if err != nil {
 			fmt.Fprintf(w, "Failure! user does not exist!\n\n")
-			errorEventParams := map[string]string {
-				"command": "COMMIT_BUY",
-				"stockSymbol": "",
-				"errorMessage": err.Error(),
-			}
-			logErrorEvent(txNum, errorEventParams, user)
 
 			return
 		}
@@ -93,12 +75,6 @@ func (handler *Handler) commitBuy(w http.ResponseWriter, r *http.Request) {
 		transactionToCommit, err := db.NewestPendingTransactionForUser(dbw, user, "buy")
 		if err != nil {
 			fmt.Fprintf(w, "Failure! " + err.Error())
-			errorEventParams := map[string]string {
-				"command": "COMMIT_BUY",
-				"stockSymbol": "",
-				"errorMessage": err.Error(),
-			}
-			logErrorEvent(txNum, errorEventParams, user)
 			return
 		}
 
@@ -110,12 +86,6 @@ func (handler *Handler) commitBuy(w http.ResponseWriter, r *http.Request) {
 		timeDifference := currentTime.Sub(transactionToCommit.CreatedAt)
 		if timeDifference.Seconds() > MAX_TRANSACTION_VALIDITY_SECS {
 			fmt.Fprintf(w, "Failure! Most recent buy transaction is more than 60 seconds old.")
-			errorEventParams := map[string]string {
-				"command": "COMMIT_BUY",
-				"stockSymbol": transactionToCommit.StockSymbol,
-				"errorMessage": "Failure! Buy transaction is more than 60 seconds old.",
-			}
-			logErrorEvent(txNum, errorEventParams, user)
 
 			return
 		}
@@ -140,13 +110,7 @@ func (handler *Handler) commitBuy(w http.ResponseWriter, r *http.Request) {
 			"Cost to user: " + centsToDollarsString(moneyToWithDraw) +
 			"\nCurrent funds: " + centsToDollarsString(user.CurrentMoney)
 
-			errorEventParams := map[string]string {
-				"command": "COMMIT_BUY",
-				"stockSymbol": transactionToCommit.StockSymbol,
-				"errorMessage": "Insufficient funds",
-			}
 			fmt.Fprintf(w, errMsg)
-			logErrorEvent(txNum, errorEventParams, user)
 			return
 		}
 
@@ -187,12 +151,6 @@ func (handler *Handler) cancelBuy(w http.ResponseWriter, r *http.Request) {
 		user, err := db.UserFromUsername(dbw, username)
 		if err != nil {
 			fmt.Fprintf(w, "Failure! user does not exist!\n\n")
-			errorEventParams := map[string]string {
-				"command": "COMMIT_BUY",
-				"stockSymbol": "",
-				"errorMessage": err.Error(),
-			}
-			logErrorEvent(txNum, errorEventParams, user)
 
 			return
 		}
@@ -200,12 +158,6 @@ func (handler *Handler) cancelBuy(w http.ResponseWriter, r *http.Request) {
 		transactionToCancel, err := db.NewestPendingTransactionForUser(dbw, user, "buy")
 		if err != nil {
 			fmt.Fprintf(w, "Failure! " + err.Error())
-			errorEventParams := map[string]string {
-				"command": "CANCEL_BUY",
-				"stockSymbol": "",
-				"errorMessage": err.Error(),
-			}
-			logErrorEvent(txNum, errorEventParams, user)
 
 			return
 		}
@@ -218,12 +170,6 @@ func (handler *Handler) cancelBuy(w http.ResponseWriter, r *http.Request) {
 		if timeDifference.Seconds() > MAX_TRANSACTION_VALIDITY_SECS {
 			errMsg := "Failure! Most recent BUY transaction is more than 60 seconds old."
 			fmt.Fprintf(w, errMsg)
-			errorEventParams := map[string]string {
-				"command": "CANCEL_BUY",
-				"stockSymbol": transactionToCancel.StockSymbol,
-				"errorMessage": errMsg,
-			}
-			logErrorEvent(txNum, errorEventParams, user)
 
 			return
 		}
@@ -247,12 +193,6 @@ func createBuyTransaction(txNum uint, user *db.User, stockSymbol string, amountT
 	dbw.Conn.NewRecord(buyTransaction)
 
 	if !user.HasEnoughMoney(amountToBuyInCents) {
-		errorEventParams := map[string]string {
-			"command": "BUY",
-			"stockSymbol": stockSymbol,
-			"errorMessage": "Insufficient funds",
-		}
-		logErrorEvent(txNum, errorEventParams, user)
 
 		return errors.New("Failure! User does not have enough money\n\n" +
 		"User ID: " + user.Username + "\n" +

@@ -21,12 +21,6 @@ func (handler *Handler) setSellAmount(w http.ResponseWriter, r *http.Request) {
 		logSetSellAmountCommand(txNum, stockSymbol, user)
 
 		if err != nil {
-			errorEventParams := map[string]string {
-				"command": "SET_SELL_AMOUNT",
-				"stockSymbol": stockSymbol,
-				"errorMessage": err.Error(),
-			}
-			logErrorEvent(txNum, errorEventParams, &user)
 			fmt.Fprintf(w, "Error: ", err)
 			return
 		}
@@ -93,12 +87,6 @@ func (handler *Handler) cancelSetSell(w http.ResponseWriter, r *http.Request) {
 		trig, err := db.TriggerFromUserAndStockSym(dbw, user.ID, stockSymbol, "sell")
 		if err != nil {
 			fmt.Fprintf(w, "Error: ", err)
-			errorEventParams := map[string]string {
-				"command": "CANCEL_SET_SELL",
-				"stockSymbol": stockSymbol,
-				"errorMessage": err.Error(),
-			}
-			logErrorEvent(txNum, errorEventParams, &user)
 			return
 		}
 
@@ -106,12 +94,6 @@ func (handler *Handler) cancelSetSell(w http.ResponseWriter, r *http.Request) {
 		stockHolding, err := db.StockHoldingFromUserAndStockSym(dbw, user.ID, stockSymbol)
 		if err != nil {
 			fmt.Fprintf(w, "Error:", err)
-			errorEventParams := map[string]string {
-				"command": "CANCEL_SET_SELL",
-				"stockSymbol": stockSymbol,
-				"errorMessage": err.Error(),
-			}
-			logErrorEvent(txNum, errorEventParams, &user)
 			return
 		}
 
@@ -160,12 +142,6 @@ func (handler *Handler) setSellTrigger(w http.ResponseWriter, r *http.Request) {
 
 			fmt.Fprintf(w, "Error: ",  "Empty amount for SET_SELL_TRIGGER")
 
-			errorEventParams := map[string]string {
-				"command": "SET_SELL_TRIGGER",
-				"stockSymbol": stockSymbol,
-				"errorMessage": "Empty amount for SET_SELL_TRIGGER",
-			}
-			logErrorEvent(txNum, errorEventParams, &user)
 			return;
 		}
 
@@ -174,12 +150,6 @@ func (handler *Handler) setSellTrigger(w http.ResponseWriter, r *http.Request) {
 		trig, err := db.TriggerFromUserAndStockSym(dbw, user.ID, stockSymbol, "sell")
 		if err != nil {
 			fmt.Fprintf(w, "Error: ", err)
-			errorEventParams := map[string]string {
-				"command": "SET_SELL_TRIGGER",
-				"stockSymbol": stockSymbol,
-				"errorMessage": err.Error(),
-			}
-			logErrorEvent(txNum, errorEventParams, &user)
 			return
 		}
 
@@ -190,12 +160,6 @@ func (handler *Handler) setSellTrigger(w http.ResponseWriter, r *http.Request) {
 		stockHolding, err := db.StockHoldingFromUserAndStockSym(dbw, user.ID, stockSymbol)
 		if err != nil {
 			fmt.Fprintf(w, "Error:", err)
-			errorEventParams := map[string]string {
-				"command": "SET_SELL_TRIGGER",
-				"stockSymbol": stockSymbol,
-				"errorMessage": err.Error(),
-			}
-			logErrorEvent(txNum, errorEventParams, &user)
 			return
 		}
 

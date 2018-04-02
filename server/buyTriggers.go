@@ -20,12 +20,6 @@ func (handler *Handler) setBuyAmount(w http.ResponseWriter, r *http.Request) {
 
 		if err != nil {
 			fmt.Fprintf(w, "Error: ", err)
-			errorEventParams := map[string]string {
-				"command": "SET_BUY_AMOUNT",
-				"stockSymbol": stockSymbol,
-				"errorMessage": err.Error(),
-			}
-			logErrorEvent(txNum, errorEventParams, &user)
 			return
 		}
 
@@ -46,13 +40,6 @@ func (handler *Handler) setBuyAmount(w http.ResponseWriter, r *http.Request) {
 			user.CurrentMoney += uint(amountDifference*(-1))
 		} else if !user.HasEnoughMoney(newAmount-oldAmount) {
 			fmt.Fprintf(w, "Insufficient funds")
-			errorEventParams := map[string]string {
-				"command": "SET_BUY_AMOUNT",
-				"stockSymbol": stockSymbol,
-				"buyAmount" : buyAmount,
-				"errorMessage": "Insufficient funds",
-			}
-			logErrorEvent(txNum, errorEventParams, &user)
 			return
 		} else {
 			user.CurrentMoney -= uint(amountDifference)
@@ -101,12 +88,6 @@ func (handler *Handler) cancelSetBuy(w http.ResponseWriter, r *http.Request) {
 		trig, err := db.TriggerFromUserAndStockSym(dbw, user.ID, stockSymbol, "buy")
 		if err != nil {
 			fmt.Fprintf(w, "Error: ", err)
-			errorEventParams := map[string]string {
-				"command": "CANCEL_SET_BUY",
-				"stockSymbol": stockSymbol,
-				"errorMessage": err.Error(),
-			}
-			logErrorEvent(txNum, errorEventParams, &user)
 			return
 		}
 
@@ -153,12 +134,6 @@ func (handler *Handler) setBuyTrigger(w http.ResponseWriter, r *http.Request) {
 
 			fmt.Fprintf(w, "Error: ",  "Empty amount for SET_BUY_TRIGGER")
 
-			errorEventParams := map[string]string {
-				"command": "SET_BUY_TRIGGER",
-				"stockSymbol": stockSymbol,
-				"errorMessage": "Empty amount for SET_BUY_TRIGGER",
-			}
-			logErrorEvent(txNum, errorEventParams, &user)
 			return
 		}
 
@@ -167,12 +142,6 @@ func (handler *Handler) setBuyTrigger(w http.ResponseWriter, r *http.Request) {
 		trig, err := db.TriggerFromUserAndStockSym(dbw, user.ID, stockSymbol, "buy")
 		if err != nil {
 			fmt.Fprintf(w, "Error: ", err)
-			errorEventParams := map[string]string {
-				"command": "SET_BUY_TRIGGER",
-				"stockSymbol": stockSymbol,
-				"errorMessage": err.Error(),
-			}
-			logErrorEvent(txNum, errorEventParams, &user)
 			return
 		}
 
