@@ -4,6 +4,7 @@ import(
 	"errors"
 	"fmt"
 	"github.com/go-redis/redis"
+	"os"
 	"time"
 )
 
@@ -11,9 +12,14 @@ type Cache struct {
 	Client *redis.Client
 }
 
+func redisUrl() string {
+	url := os.Getenv("REDIS_URL")
+	return url
+}
+
 func (cache *Cache) Init() {
 	client := redis.NewClient(&redis.Options{
-		Addr:     "redis:6379",
+		Addr: redisUrl(),
 		Password: "", // no password set
 		DB:       0,  // use default DB
 	})

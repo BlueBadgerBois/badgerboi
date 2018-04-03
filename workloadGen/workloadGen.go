@@ -14,9 +14,13 @@ import (
 	"fmt"
 )
 
-const serverUrl = "http://web:8082"
 const defaultTestFile = "1000User_testWorkLoad.txt"
 var wg sync.WaitGroup
+
+func serverUrl() string {
+	serverUrl := "http://" + os.Getenv("WEB_URL")
+	return serverUrl
+}
 
 /*
 * Returns a two dimentional array, outer array contains the users,
@@ -195,7 +199,8 @@ func sendRequest (data url.Values, commandType string) string {
 
 	for {
 		//Set the request and reader
-		req, err := http.NewRequest("POST", serverUrl + "/" + commandType, strings.NewReader(data.Encode()))
+		fmt.Println("server url: " + serverUrl())
+		req, err := http.NewRequest("POST", serverUrl() + "/" + commandType, strings.NewReader(data.Encode()))
 		if err != nil {
 			log.Println("Error making a new request:")
 			log.Println(err)

@@ -2,6 +2,7 @@ package db
 
 import (
 	"log"
+	"os"
 	"time"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
@@ -25,10 +26,20 @@ func (dbw *DBW) Init() {
 	dbw.migrate()
 }
 
+func dbHost() string {
+	host := os.Getenv("DB_HOST")
+	return host
+}
+
+func dbPort() string {
+	port := os.Getenv("DB_PORT")
+	return port
+}
+
 func (dbw *DBW) connectWithRetries() {
 	log.Println("Connecting to postgres.")
 	// conn, err := gorm.Open("postgres", "host=db_proxy port=6432 user=badgerboi dbname=badgerboi sslmode=disable password=badgerboi")
-	conn, err := gorm.Open("postgres", "host=db port=5432 user=badgerboi dbname=badgerboi sslmode=disable password=badgerboi")
+	conn, err := gorm.Open("postgres", "host=" + dbHost() + " port=" + dbPort() + " user=badgerboi dbname=badgerboi sslmode=disable password=badgerboi")
 	dbw.Conn = conn
 	if err != nil {
 		log.Println(err)

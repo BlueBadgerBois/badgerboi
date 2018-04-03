@@ -5,16 +5,15 @@ services:
     container_name: web
     ports:
       - "8082:8082" # port that is exposed for the web server
-    depends_on:
-      - redis
-      - quote
-      - db_proxy
     build: ./server
     volumes:
       - ./server:/go/src/app
     environment:
       ROLE: web
       QUOTE_SERVER_URL: "quoteserve:4448"
+      DB_HOST: "db"
+      DB_PORT: "5432"
+      REDIS_URL: "redis:6379"
     networks:
       default:
         aliases:
@@ -22,10 +21,6 @@ services:
 
   job:
     container_name: job
-    depends_on:
-      - redis
-      - quote
-      - db_proxy
     build: ./server
     volumes:
       - ./server:/go/src/app
@@ -36,6 +31,9 @@ services:
     environment:
       ROLE: job
       QUOTE_SERVER_URL: "quoteserve:4448"
+      DB_HOST: "db"
+      DB_PORT: "5432"
+      REDIS_URL: "redis:6379"
 
   db:
     container_name: db
@@ -76,9 +74,10 @@ services:
     image: redis
     ports:
       - "6379:6379"
-
   workload:
     container_name: workload
     build: ./workloadGen
     volumes:
       - ./workloadGen:/go/src/app
+    environment:
+      WEB_URL: "web:8082"
