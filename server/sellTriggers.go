@@ -40,11 +40,15 @@ func (handler *Handler) setSellAmount(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// they want to make at least this much money
-		amountToSell := stringMoneyToCents(sellAmount)
+		amountToSell, convErr := stringMoneyToCents(sellAmount)
+		if convErr != nil {
+			fmt.Fprintf(w, "Error: ", convErr.Error())
+			return
+		}
 
 		// get the current quoted price
 		quoteResponse := getQuoteFromServer(txNum, username, stockSymbol)
-		quotePrice := stringMoneyToCents(quoteResponse["price"])
+		quotePrice, _ := stringMoneyToCents(quoteResponse["price"])
 
 		numStocks, _ := convertMoneyToStock(amountToSell, quotePrice)
 
@@ -145,7 +149,11 @@ func (handler *Handler) setSellTrigger(w http.ResponseWriter, r *http.Request) {
 			return;
 		}
 
-		thresholdInCents := stringMoneyToCents(threshold);
+		thresholdInCents, convErr := stringMoneyToCents(threshold);
+		if convErr != nil {
+			fmt.Fprintf(w, "Error: ", convErr.Error())
+			return
+		}
 
 		trig, err := db.TriggerFromUserAndStockSym(dbw, user.ID, stockSymbol, "sell")
 		if err != nil {

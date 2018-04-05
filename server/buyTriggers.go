@@ -23,7 +23,11 @@ func (handler *Handler) setBuyAmount(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		amountToBuyInCents := stringMoneyToCents(buyAmount)
+		amountToBuyInCents, convErr := stringMoneyToCents(buyAmount)
+		if convErr != nil {
+			fmt.Fprintf(w, "Error: ", convErr)
+			return
+		}
 
 		triggerQuery := db.BuildBuyTrigger(&user)
 		triggerQuery.StockSym = stockSymbol
@@ -137,7 +141,12 @@ func (handler *Handler) setBuyTrigger(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		thresholdInCents := stringMoneyToCents(threshold);
+		thresholdInCents, convErr := stringMoneyToCents(threshold);
+
+		if convErr != nil {
+			fmt.Fprintf(w, "Error: ", convErr)
+			return
+		}
 
 		trig, err := db.TriggerFromUserAndStockSym(dbw, user.ID, stockSymbol, "buy")
 		if err != nil {

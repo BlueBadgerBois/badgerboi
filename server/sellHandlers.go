@@ -18,7 +18,11 @@ func (handler *Handler) sell(w http.ResponseWriter, r *http.Request) {
 		sellAmount := r.Form.Get("sellAmount") // the amount of money we want to get out of this
 		stockSymbol := r.Form.Get("stockSymbol")
 
-		amountToSellInCents := stringMoneyToCents(sellAmount)
+		amountToSellInCents, convErr := stringMoneyToCents(sellAmount)
+		if convErr != nil {
+			fmt.Fprintf(w, "Error: ", convErr.Error())
+			return
+		}
 
 		user := db.UserFromUsernameOrCreate(dbw, username)
 
@@ -26,8 +30,8 @@ func (handler *Handler) sell(w http.ResponseWriter, r *http.Request) {
 
 		quoteResponseMap := getQuoteFromServer(txNum, username, stockSymbol)
 
-		err, _ := createSellTransaction(txNum, user, stockSymbol, amountToSellInCents,
-		stringMoneyToCents(quoteResponseMap["price"]))
+		amountFromQuote, _ := stringMoneyToCents(quoteResponseMap["price"])
+		err, _ := createSellTransaction(txNum, user, stockSymbol, amountToSellInCents, amountFromQuote)
 
 		if err != nil {
 			fmt.Fprintf(w, "Error!" + err.Error())

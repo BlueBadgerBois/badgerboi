@@ -55,7 +55,20 @@ func (handler *Handler) add(w http.ResponseWriter, r *http.Request) {
 		username := r.Form.Get("username")
 		amount := r.Form.Get("amount")
 
-		amountInCents := stringMoneyToCents(amount)
+		amountInCents, convErr := stringMoneyToCents(amount)
+
+		if convErr != nil {
+			fmt.Fprintf(w, "Error: ", convErr.Error())
+			return
+		}
+
+		fmt.Println("amount " + string(amountInCents))
+
+		if amountInCents < 0 {
+			errMsg := "Error! Amount of money cannot be negative."
+			fmt.Fprintf(w, errMsg)
+			return
+		}
 
 		user := db.UserFromUsernameOrCreate(dbw, username)
 
@@ -287,9 +300,12 @@ func quoteServerResponseToMap(message string) map[string]string {
 	return outputMap
 }
 
-func stringMoneyToCents(amount string) uint { // this needs to be fixed to handle improper inputs (no decimal)
+func stringMoneyToCents(amount string) (uint, error) { // this needs to be fixed to handle improper inputs (no decimal)
 	stringAmountCents, _ := strconv.Atoi(strings.Replace(amount, ".", "", -1))
-	return uint(stringAmountCents)
+	if int(stringAmountCents) < 0 {
+		return uint(stringAmountCents), errors.New("Cannot provide negative money.")
+	}
+	return uint(stringAmountCents), nil
 }
 
 func authUser(uname string) (db.User, error) {

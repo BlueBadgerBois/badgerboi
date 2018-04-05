@@ -17,7 +17,11 @@ func (handler *Handler) buy(w http.ResponseWriter, r *http.Request) {
 		buyAmount := r.Form.Get("buyAmount")
 		stockSymbol := r.Form.Get("stockSymbol")
 
-		amountToBuyInCents := stringMoneyToCents(buyAmount)
+		amountToBuyInCents, convErr := stringMoneyToCents(buyAmount)
+		if convErr != nil {
+			fmt.Fprintf(w, "Error: ", convErr.Error())
+			return
+		}
 
 		user := db.UserFromUsernameOrCreate(dbw, username)
 
@@ -33,7 +37,7 @@ func (handler *Handler) buy(w http.ResponseWriter, r *http.Request) {
 
 		quoteResponseMap := getQuoteFromServer(txNum, username, stockSymbol)
 
-		quotedPriceInCents := stringMoneyToCents(quoteResponseMap["price"])
+		quotedPriceInCents, _ := stringMoneyToCents(quoteResponseMap["price"])
 
 		if !anyStocksCanBeBought(amountToBuyInCents, quotedPriceInCents) {
 			errMsg := "Error! The buy amount " + centsToDollarsString(amountToBuyInCents) +
@@ -189,7 +193,7 @@ func createBuyTransaction(txNum uint, user *db.User, stockSymbol string, amountT
 	buyTransaction := db.BuildBuyTransaction(user)
 	buyTransaction.StockSymbol = stockSymbol
 	buyTransaction.AmountInCents = amountToBuyInCents
-	buyTransaction.QuotedStockPrice = stringMoneyToCents(quotePrice)
+	buyTransaction.QuotedStockPrice, _ = stringMoneyToCents(quotePrice)
 	dbw.Conn.NewRecord(buyTransaction)
 
 	if !user.HasEnoughMoney(amountToBuyInCents) {

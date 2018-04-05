@@ -30,7 +30,7 @@ func checkTriggers() {
 		}
 		responseMap := getQuoteFromServer(txNum, user.Username, trig.StockSym)
 
-		quotePrice := stringMoneyToCents(responseMap["price"])
+		quotePrice, _ := stringMoneyToCents(responseMap["price"])
 		if trig.Type == "buy" && quotePrice < trig.PriceThreshold {
 
 			amntToBuy, leftover := convertMoneyToStock(trig.Amount, quotePrice)
