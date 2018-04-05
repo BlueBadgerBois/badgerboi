@@ -35,22 +35,28 @@ func checkTriggers() {
 
 			amntToBuy, leftover := convertMoneyToStock(trig.Amount, quotePrice)
 
-			stockHolding := db.StockHolding{
+			var stockHolding db.StockHolding
+			holdingQuery := db.StockHolding{
 				UserID: user.ID,
 				StockSymbol: trig.StockSym,
 			}
+
 			user.CurrentMoney = user.CurrentMoney + leftover
 
 			// ======== START TRANSACTION ========
 			tx := dbw.Conn.Begin()
 
-			if err := tx.FirstOrCreate(&stockHolding).Error; err != nil {
+			if err := tx.FirstOrCreate(&stockHolding, &holdingQuery).Error; err != nil {
 				tx.Rollback()
 				continue
 			}
 
 			stockHolding.Number += amntToBuy
-			tx.Save(stockHolding)
+
+			if err := tx.Save(&stockHolding).Error; err != nil {
+				tx.Rollback()
+				continue
+			}
 
 			if err := tx.Save(&user).Error; err != nil {
 				tx.Rollback()
