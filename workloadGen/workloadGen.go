@@ -14,7 +14,7 @@ import (
 	"fmt"
 )
 
-const defaultTestFile = "1000User_testWorkLoad.txt"
+const defaultTestFile = "final_user_workload.txt"
 var wg sync.WaitGroup
 
 func serverUrl() string {
